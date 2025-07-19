@@ -107,6 +107,7 @@ export type DeviceAKTapHold = {
   tapKeycode: number
   holdKeycode: number
   tappingTerm: number
+  holdOnOtherKeyPress: boolean
 }
 
 export type DeviceAKToggle = {

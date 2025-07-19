@@ -27,6 +27,7 @@ import { produce } from "immer"
 import { useEffect, useState } from "react"
 import { KeycodeButton } from "../common/keycode-button"
 import { KeycodeSelector } from "../common/keycode-selector"
+import { Switch } from "../common/switch"
 import { useAdvancedKeysEditor } from "./advanced-keys-editor"
 import { KeyTesterTab } from "./key-tester-tab"
 import { TickRateTab } from "./tick-rate-tab"
@@ -125,6 +126,19 @@ export function TapHoldEditor() {
             className="mt-3"
           />
         </div>
+        <Switch
+          size="sm"
+          id="hold-on-other-key-press"
+          title="Hold On Other Key Press"
+          description="When another key is pressed while holding this key, immediately send the hold keycode regardless of the tapping term."
+          checked={uiAdvancedKey.holdOnOtherKeyPress}
+          onCheckedChange={(checked) =>
+            updateAdvancedKey({
+              ...ak,
+              holdOnOtherKeyPress: checked,
+            })
+          }
+        />
       </div>
       <Tabs defaultValue="bindings" className="flex flex-1 flex-col">
         <div>

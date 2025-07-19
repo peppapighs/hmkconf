@@ -445,6 +445,7 @@ export const useHMKDevice = create<HMKDevice>()(
                   tapKeycode: response.getUint8(offset + 3),
                   holdKeycode: response.getUint8(offset + 4),
                   tappingTerm: response.getUint16(offset + 5, true),
+                  holdOnOtherKeyPress: response.getUint8(offset + 7) !== 0,
                 },
               })
               break
@@ -513,6 +514,7 @@ export const useHMKDevice = create<HMKDevice>()(
                   (ak.tappingTerm >> 0) & 0xff,
                   (ak.tappingTerm >> 8) & 0xff,
                 )
+                buffer.push(ak.holdOnOtherKeyPress ? 1 : 0)
                 break
 
               case DeviceAKType.TOGGLE:

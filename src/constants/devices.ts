@@ -111,6 +111,7 @@ export const AK_METADATA: DeviceAdvancedKeyMetadata[] = [
         tapKeycode: keymap[0],
         holdKeycode: Keycode.KC_NO,
         tappingTerm: DEFAULT_TAPPING_TERM,
+        holdOnOtherKeyPress: false,
       },
     }),
   },
