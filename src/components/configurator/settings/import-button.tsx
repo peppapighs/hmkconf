@@ -45,7 +45,7 @@ export function ImportButton() {
   const [importCancellable, setImportCancellable] = useState(false)
   const [importToastId, setImportToastId] = useState<string | null>(null)
 
-  // 現在のファームウェアバージョンを取得
+  // Get current firmware version
   useEffect(() => {
     const fetchFirmwareVersion = async () => {
       if (device) {
@@ -66,7 +66,7 @@ export function ImportButton() {
   }, [isImporting])
 
   const handleImportClick = () => {
-    // トリガーファイル選択ダイアログ
+    // Trigger file selection dialog
     fileInputRef.current?.click()
   }
 
@@ -76,36 +76,36 @@ export function ImportButton() {
 
     const file = files[0]
     setSelectedFileName(file.name)
-    
+
     try {
       // Create a unique ID for the progress toast
       const toastId = `import-progress-${Date.now()}`
-      
+
       // Show initial toast for starting import
       toast({
         id: toastId,
         title: "Importing Configuration",
         description: `Reading file: ${file.name}`,
       })
-      
+
       setImportToastId(toastId)
       setImportCancellable(true)
-      
+
       await importConfig(file)
-      
+
       // Reset file input to allow selecting the same file again
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
       }
     } catch (error) {
       console.error("Import error:", error)
-      
+
       toast({
         title: "Import Failed",
         description: "An unexpected error occurred during import. Please try again.",
         variant: "destructive",
       })
-      
+
       // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
@@ -120,17 +120,17 @@ export function ImportButton() {
         title: "Import Cancelled",
         description: "Configuration import was cancelled by user",
       })
-      
+
       // Reset state
       setImportCancellable(false)
       setImportToastId(null)
       setSelectedFileName(null)
-      
+
       // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
       }
-      
+
       // Call the cancel handler from the hook
       handleCompatibilityCancel()
     }
@@ -146,7 +146,7 @@ export function ImportButton() {
         className="hidden"
         aria-label="Select configuration file to import"
       />
-      
+
       <div className="flex items-center gap-2">
         <TooltipProvider>
           <Tooltip>
@@ -178,7 +178,7 @@ export function ImportButton() {
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        
+
         {/* Cancel button - only shown during import */}
         {importCancellable && (
           <TooltipProvider>
@@ -200,7 +200,7 @@ export function ImportButton() {
             </Tooltip>
           </TooltipProvider>
         )}
-        
+
         {/* Selected file name badge */}
         {selectedFileName && !isImporting && (
           <Badge variant="outline" className="ml-2 max-w-[150px] truncate">
@@ -209,7 +209,7 @@ export function ImportButton() {
         )}
       </div>
 
-      {/* 互換性チェックダイアログ */}
+      {/* Compatibility check dialog */}
       {currentConfigFile && (
         <CompatibilityDialog
           open={showCompatibilityDialog}

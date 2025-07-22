@@ -210,7 +210,7 @@ export function useExportConfig() {
       const hasProfileData = Object.keys(profilesData).length > 0 && 
         Object.values(profilesData).some(profile => Object.keys(profile).length > 0)
       
-      // データが取得できなかった場合はエラー
+      // Error if no data could be retrieved
       if (!hasProfileData && !calibrationData) {
         toast({
           title: "Export Error",
