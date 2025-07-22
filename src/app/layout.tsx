@@ -19,6 +19,7 @@ import "./globals.css"
 import { QueryClientProvider } from "@/components/providers/query-client-provider"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { cn } from "@/lib/utils"
+import { Toaster } from "@/components/ui/toaster"
 
 const geist = Geist({ subsets: ["latin"] })
 
@@ -45,6 +46,7 @@ export default function RootLayout({
           >
             <div className="relative flex min-h-screen flex-col bg-background">
               {children}
+              <Toaster />
             </div>
           </ThemeProvider>
         </QueryClientProvider>

@@ -31,6 +31,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { ExportButton } from "./export-button"
+import { ImportButton } from "./import-button"
 
 export function SettingsTab() {
   const { isDemo } = useDevice()
@@ -42,6 +44,22 @@ export function SettingsTab() {
   return (
     <ScrollArea className="flex-1">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 p-4">
+        <div className="flex flex-col">
+          <h3 className="text-lg font-semibold leading-none tracking-tight">
+            Export/Import Settings
+          </h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Export your current keyboard configuration as a JSON file or import previously saved settings.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <ExportButton />
+            <ImportButton />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            <span className="font-medium">Tip:</span> Exported configuration files can be shared with other users or used as backups.
+          </p>
+        </div>
+        
         <div className="flex flex-col">
           <p className="font-semibold leading-none tracking-tight">
             Restart Device
