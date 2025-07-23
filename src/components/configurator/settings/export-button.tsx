@@ -16,17 +16,22 @@
 "use client"
 
 import { useExportConfig } from "@/api/use-export-config"
-import { Button } from "@/components/ui/button"
 import { useDevice } from "@/components/providers/device-provider"
+import { Button } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Download, Loader2 } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
 import { useState } from "react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { toast } from "sonner"
 
 export function ExportButton() {
   const { isDemo } = useDevice()
   const { exportConfig, isExporting } = useExportConfig()
-  const { toast } = useToast()
+
   const [isHovered, setIsHovered] = useState(false)
 
   const handleExport = async () => {
@@ -36,14 +41,15 @@ export function ExportButton() {
       return result
     } catch (error) {
       console.error("Export error:", error)
-      
+
       // Show error toast if an unexpected error occurs
-      toast({
-        title: "Export Failed",
-        description: "An unexpected error occurred during export. Please try again.",
-        variant: "destructive",
-      })
-      
+      toast.error(
+        "An unexpected error occurred during export. Please try again.",
+        {
+          description: "Export Failed",
+        },
+      )
+
       return false
     }
   }
@@ -59,17 +65,23 @@ export function ExportButton() {
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             className="relative transition-all hover:bg-primary/10"
-            aria-label={isExporting ? "Exporting configuration..." : "Export configuration"}
+            aria-label={
+              isExporting
+                ? "Exporting configuration..."
+                : "Export configuration"
+            }
           >
             {isExporting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 size-4 animate-spin" />
                 Exporting...
               </>
             ) : (
               <>
                 Export
-                <Download className={`ml-2 h-4 w-4 transition-transform ${isHovered ? 'translate-y-0.5' : ''}`} />
+                <Download
+                  className={`ml-2 size-4 transition-transform ${isHovered ? "translate-y-0.5" : ""}`}
+                />
               </>
             )}
           </Button>

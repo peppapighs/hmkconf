@@ -16,14 +16,19 @@
 "use client"
 
 import { useImportConfig } from "@/api/use-import-config"
-import { Button } from "@/components/ui/button"
 import { useDevice } from "@/components/providers/device-provider"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Loader2, Upload, X } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import { toast } from "sonner"
 import { CompatibilityDialog } from "./compatibility-dialog"
-import { useToast } from "@/components/ui/use-toast"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Badge } from "@/components/ui/badge"
 
 export function ImportButton() {
   const device = useDevice()
@@ -35,15 +40,17 @@ export function ImportButton() {
     compatibilityIssues,
     handleCompatibilityContinue,
     handleCompatibilityCancel,
-    getCurrentFirmwareVersion
+    getCurrentFirmwareVersion,
+    cancelImport,
+    isCancelling,
   } = useImportConfig()
+
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [currentFirmwareVersion, setCurrentFirmwareVersion] = useState<string>("Unknown")
+  const [currentFirmwareVersion, setCurrentFirmwareVersion] =
+    useState<string>("Unknown")
   const [isHovered, setIsHovered] = useState(false)
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
-  const { toast } = useToast()
-  const [importCancellable, setImportCancellable] = useState(false)
-  const [importToastId, setImportToastId] = useState<string | null>(null)
+  const [currentToastId, setCurrentToastId] = useState<string | null>(null)
 
   // Get current firmware version
   useEffect(() => {
@@ -57,14 +64,6 @@ export function ImportButton() {
     fetchFirmwareVersion()
   }, [device, getCurrentFirmwareVersion])
 
-  // Import process state management
-  useEffect(() => {
-    if (!isImporting) {
-      setImportCancellable(false)
-      setImportToastId(null)
-    }
-  }, [isImporting])
-
   const handleImportClick = () => {
     // Trigger file selection dialog
     fileInputRef.current?.click()
@@ -77,21 +76,19 @@ export function ImportButton() {
     const file = files[0]
     setSelectedFileName(file.name)
 
-    try {
-      // Create a unique ID for the progress toast
-      const toastId = `import-progress-${Date.now()}`
+    // Generate a unique toast ID
+    const toastId = `import-${file.name.replace(/\s+/g, '-')}-${Date.now()}`
+    setCurrentToastId(toastId)
 
-      // Show initial toast for starting import
-      toast({
+    try {
+      // Display initial toast
+      toast.loading(`Reading file: ${file.name}`, {
         id: toastId,
-        title: "Importing Configuration",
-        description: `Reading file: ${file.name}`,
+        description: "Importing Configuration",
       })
 
-      setImportToastId(toastId)
-      setImportCancellable(true)
-
-      await importConfig(file)
+      // Execute import process using TanStack Query mutation (passing the toast ID)
+      await importConfig(file, toastId)
 
       // Reset file input to allow selecting the same file again
       if (fileInputRef.current) {
@@ -100,39 +97,42 @@ export function ImportButton() {
     } catch (error) {
       console.error("Import error:", error)
 
-      toast({
-        title: "Import Failed",
-        description: "An unexpected error occurred during import. Please try again.",
-        variant: "destructive",
-      })
+      // Display error toast (using the same ID)
+      toast.error(
+        "An unexpected error occurred during import. Please try again.",
+        {
+          id: toastId,
+          description: "Import Failed",
+        },
+      )
 
       // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
       }
+      
+      // Reset toast ID
+      setCurrentToastId(null)
     }
   }
 
   const handleCancelImport = () => {
-    if (importCancellable && importToastId) {
-      // Dismiss the current toast
-      toast({
-        title: "Import Cancelled",
-        description: "Configuration import was cancelled by user",
-      })
+    if (isImporting) {
+      // Execute cancellation process
+      cancelImport()
 
-      // Reset state
-      setImportCancellable(false)
-      setImportToastId(null)
+      // Display cancellation toast (using the same ID)
+      if (currentToastId) {
+        toast.info("Cancelling import process...", {
+          id: currentToastId,
+        })
+      }
+
+      // Reset file selection
       setSelectedFileName(null)
-
-      // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
       }
-
-      // Call the cancel handler from the hook
-      handleCompatibilityCancel()
     }
   }
 
@@ -158,17 +158,23 @@ export function ImportButton() {
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 className="relative transition-all hover:bg-primary/10"
-                aria-label={isImporting ? "Importing configuration..." : "Import configuration"}
+                aria-label={
+                  isImporting
+                    ? "Importing configuration..."
+                    : "Import configuration"
+                }
               >
                 {isImporting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 size-4 animate-spin" />
                     Importing...
                   </>
                 ) : (
                   <>
                     Import
-                    <Upload className={`ml-2 h-4 w-4 transition-transform ${isHovered ? 'translate-y-[-2px]' : ''}`} />
+                    <Upload
+                      className={`ml-2 size-4 transition-transform ${isHovered ? "translate-y-[-2px]" : ""}`}
+                    />
                   </>
                 )}
               </Button>
@@ -180,7 +186,7 @@ export function ImportButton() {
         </TooltipProvider>
 
         {/* Cancel button - only shown during import */}
-        {importCancellable && (
+        {isImporting && (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -188,10 +194,11 @@ export function ImportButton() {
                   variant="ghost"
                   size="icon"
                   onClick={handleCancelImport}
-                  className="h-9 w-9 rounded-full"
+                  className="size-9 rounded-full"
                   aria-label="Cancel import"
+                  disabled={isCancelling}
                 >
-                  <X className="h-4 w-4" />
+                  <X className="size-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
