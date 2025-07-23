@@ -13,6 +13,7 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import z from "zod"
 import { DeviceMetadata } from "./device-metadata"
 
 export enum DeviceCommand {
@@ -49,17 +50,21 @@ export type DeviceAnalogInfo = {
   distance: number
 }
 
-export type DeviceCalibration = {
-  initialRestValue: number
-  initialBottomOutThreshold: number
-}
+export const deviceCalibrationSchema = z.object({
+  initialRestValue: z.number().int().min(0),
+  initialBottomOutThreshold: z.number().int().min(0),
+})
 
-export type DeviceActuation = {
-  actuationPoint: number
-  rtDown: number
-  rtUp: number
-  continuous: boolean
-}
+export type DeviceCalibration = z.infer<typeof deviceCalibrationSchema>
+
+export const deviceActuationSchema = z.object({
+  actuationPoint: z.number().int().min(0).max(255),
+  rtDown: z.number().int().min(0).max(255),
+  rtUp: z.number().int().min(0).max(255),
+  continuous: z.boolean(),
+})
+
+export type DeviceActuation = z.infer<typeof deviceActuationSchema>
 
 export enum DeviceAKType {
   NONE = 0,
@@ -69,9 +74,11 @@ export enum DeviceAKType {
   TOGGLE,
 }
 
-export type DeviceAKNone = {
-  type: DeviceAKType.NONE
-}
+export const deviceAKNoneSchema = z.object({
+  type: z.literal(DeviceAKType.NONE),
+})
+
+export type DeviceAKNone = z.infer<typeof deviceAKNoneSchema>
 
 export enum DeviceNullBindBehavior {
   LAST = 0,
@@ -81,12 +88,18 @@ export enum DeviceNullBindBehavior {
   DISTANCE,
 }
 
-export type DeviceAKNullBind = {
-  type: DeviceAKType.NULL_BIND
-  secondaryKey: number
-  behavior: DeviceNullBindBehavior
-  bottomOutPoint: number
-}
+export const deviceAKNullBind = z.object({
+  type: z.literal(DeviceAKType.NULL_BIND),
+  secondaryKey: z.number().min(0).max(255),
+  behavior: z
+    .number()
+    .refine((val) => Object.values(DeviceNullBindBehavior).includes(val), {
+      error: "Invalid Null Bind behavior",
+    }),
+  bottomOutPoint: z.number().min(0).max(255),
+})
+
+export type DeviceAKNullBind = z.infer<typeof deviceAKNullBind>
 
 export enum DeviceDKSAction {
   HOLD = 0,
@@ -95,37 +108,58 @@ export enum DeviceDKSAction {
   TAP,
 }
 
-export type DeviceAKDynamicKeystroke = {
-  type: DeviceAKType.DYNAMIC_KEYSTROKE
-  keycodes: number[]
-  bitmap: DeviceDKSAction[][]
-  bottomOutPoint: number
-}
+export const deviceAKDynamicKeystroke = z.object({
+  type: z.literal(DeviceAKType.DYNAMIC_KEYSTROKE),
+  keycodes: z.array(z.number().int().min(0).max(255)).length(4),
+  bitmap: z
+    .array(
+      z
+        .array(
+          z
+            .number()
+            .refine((val) => Object.values(DeviceDKSAction).includes(val), {
+              error: "Invalid Dynamic Keystroke action",
+            }),
+        )
+        .length(4),
+    )
+    .length(4),
+  bottomOutPoint: z.number().int().min(0).max(255),
+})
 
-export type DeviceAKTapHold = {
-  type: DeviceAKType.TAP_HOLD
-  tapKeycode: number
-  holdKeycode: number
-  tappingTerm: number
-  holdOnOtherKeyPress: boolean
-}
+export type DeviceAKDynamicKeystroke = z.infer<typeof deviceAKDynamicKeystroke>
 
-export type DeviceAKToggle = {
-  type: DeviceAKType.TOGGLE
-  keycode: number
-  tappingTerm: number
-}
+export const deviceAKTapHold = z.object({
+  type: z.literal(DeviceAKType.TAP_HOLD),
+  tapKeycode: z.number().int().min(0).max(255),
+  holdKeycode: z.number().int().min(0).max(255),
+  tappingTerm: z.number().int().min(0).max(65535),
+  holdOnOtherKeyPress: z.boolean(),
+})
 
-export type DeviceAdvancedKey = {
-  layer: number
-  key: number
-  ak:
-    | DeviceAKNone
-    | DeviceAKNullBind
-    | DeviceAKDynamicKeystroke
-    | DeviceAKTapHold
-    | DeviceAKToggle
-}
+export type DeviceAKTapHold = z.infer<typeof deviceAKTapHold>
+
+export const deviceAKToggle = z.object({
+  type: z.literal(DeviceAKType.TOGGLE),
+  keycode: z.number().int().min(0).max(255),
+  tappingTerm: z.number().int().min(0).max(65535),
+})
+
+export type DeviceAKToggle = z.infer<typeof deviceAKToggle>
+
+export const deviceAdvancedKeySchema = z.object({
+  layer: z.number().int().min(0).max(7),
+  key: z.number().int().min(0).max(255),
+  ak: z.union([
+    deviceAKNoneSchema,
+    deviceAKNullBind,
+    deviceAKDynamicKeystroke,
+    deviceAKTapHold,
+    deviceAKToggle,
+  ]),
+})
+
+export type DeviceAdvancedKey = z.infer<typeof deviceAdvancedKeySchema>
 
 export type DeviceAction = {
   connect(): Promise<void>
