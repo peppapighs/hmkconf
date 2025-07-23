@@ -16,7 +16,7 @@
 "use client"
 
 import { useDevice } from "@/components/providers/device-provider"
-import { ConfigFile, validateConfigFile } from "@/types/config"
+import { ConfigFile, ProfileData, validateConfigFile } from "@/types/config"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -72,7 +72,7 @@ export function useExportConfig() {
       }
 
       // Get current profile number with error handling
-      // 現在のプロファイルを取得（エクスポート情報として使用可能）
+      // Get current profile (can be used as export information)
       try {
         await device.getProfile()
       } catch (profileError) {
@@ -108,7 +108,7 @@ export function useExportConfig() {
       })
 
       // Get data for all profiles (0-4)
-      // ProfileDataの型を使用して型安全性を確保
+      // Use ProfileData type to ensure type safety
       const profilesData: {
         [profileId: number]: ProfileData
       } = {}
@@ -192,17 +192,17 @@ export function useExportConfig() {
         },
       }
 
-      // 共通スキーマを使用して検証
+      // Validate using common schema
       let configFile: ConfigFile
       try {
         configFile = validateConfigFile(configFileData)
       } catch (validationError) {
-        console.error("設定ファイルの検証に失敗しました:", validationError)
-        toast.error("設定ファイルの検証に失敗しました", {
+        console.error("Configuration file validation failed:", validationError)
+        toast.error("Configuration file validation failed", {
           description:
             validationError instanceof Error
               ? validationError.message
-              : "不明なエラー",
+              : "Unknown error",
         })
         return false
       }
