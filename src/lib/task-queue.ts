@@ -1,65 +1,89 @@
-type TaskQueueTask = {
-  task: (abortController: AbortController) => Promise<void>
-  cancel: () => void
-}
-
+/**
+ * Simple task queue implementation for managing sequential operations
+ */
 export class TaskQueue {
-  private tasks: TaskQueueTask[]
-  private isRunning: boolean
-  private waitForCurrentTask: Promise<void> | null
-  private abortController: AbortController
+  private queue: Array<() => Promise<unknown>> = []
+  private isProcessing = false
 
-  constructor() {
-    this.tasks = []
-    this.isRunning = false
-    this.waitForCurrentTask = null
-    this.abortController = new AbortController()
-  }
-
-  async enqueue<T>(task: (abortController: AbortController) => Promise<T>) {
-    return new Promise<T>((resolve, reject) => {
-      this.tasks.push({
-        task: async (abortController) => {
-          try {
-            resolve(await task(abortController))
-          } catch (err) {
-            reject(err)
-          }
-        },
-        cancel: () => {
-          reject(new Error("Task was cancelled"))
-        },
+  /**
+   * Add a task to the queue
+   */
+  add<T>(task: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      this.queue.push(async () => {
+        try {
+          const result = await task()
+          resolve(result)
+        } catch (error) {
+          reject(error)
+        }
       })
-      if (!this.isRunning) {
-        this.isRunning = true
-        this.tick()
+
+      if (!this.isProcessing) {
+        this.process()
       }
     })
   }
 
-  async clear() {
-    const tasks = this.tasks
-    this.tasks = []
+  /**
+   * Enqueue a task with abort controller support
+   */
+  enqueue<T>(
+    task: (abortController: AbortController) => Promise<T>,
+  ): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const abortController = new AbortController()
 
-    for (const task of tasks) {
-      task.cancel()
-    }
-    this.abortController.abort()
-    this.abortController = new AbortController()
-    if (this.waitForCurrentTask !== null) {
-      await this.waitForCurrentTask
-    }
+      this.queue.push(async () => {
+        try {
+          const result = await task(abortController)
+          resolve(result)
+        } catch (error) {
+          reject(error)
+        }
+      })
+
+      if (!this.isProcessing) {
+        this.process()
+      }
+    })
   }
 
-  private async tick() {
-    const task = this.tasks.shift()
-    if (task) {
-      this.waitForCurrentTask = task.task(this.abortController).then(() => {
-        this.waitForCurrentTask = null
-        this.tick()
-      })
-    } else {
-      this.isRunning = false
+  /**
+   * Process the queue
+   */
+  private async process(): Promise<void> {
+    if (this.isProcessing || this.queue.length === 0) {
+      return
     }
+
+    this.isProcessing = true
+
+    while (this.queue.length > 0) {
+      const task = this.queue.shift()
+      if (task) {
+        try {
+          await task()
+        } catch (error) {
+          console.error("Task queue error:", error)
+        }
+      }
+    }
+
+    this.isProcessing = false
+  }
+
+  /**
+   * Clear all pending tasks
+   */
+  clear(): void {
+    this.queue = []
+  }
+
+  /**
+   * Get the number of pending tasks
+   */
+  get length(): number {
+    return this.queue.length
   }
 }

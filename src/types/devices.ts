@@ -13,7 +13,7 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import z from "zod"
+import { z } from "zod"
 import { DeviceMetadata } from "./device-metadata"
 
 export enum DeviceCommand {

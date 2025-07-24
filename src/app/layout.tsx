@@ -16,8 +16,10 @@
 import type { Metadata } from "next"
 import { Geist } from "next/font/google"
 import "./globals.css"
+import { NotificationSystemInitializer } from "@/components/notification-system-initializer"
 import { QueryClientProvider } from "@/components/providers/query-client-provider"
 import { ThemeProvider } from "@/components/providers/theme-provider"
+import { Toaster } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
 
 const geist = Geist({ subsets: ["latin"] })
@@ -46,6 +48,8 @@ export default function RootLayout({
             <div className="relative flex min-h-screen flex-col bg-background">
               {children}
             </div>
+            <Toaster />
+            <NotificationSystemInitializer />
           </ThemeProvider>
         </QueryClientProvider>
       </body>
