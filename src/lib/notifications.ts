@@ -262,9 +262,10 @@ export const showSuccess = (
   } catch (error) {
     console.error("Failed to show success notification:", error)
     try {
-      const safeMessage = typeof message === "string" && message.trim() 
-        ? message.slice(0, 100) // Limit length for safety
-        : "Success notification"
+      const safeMessage =
+        typeof message === "string" && message.trim()
+          ? message.slice(0, 100) // Limit length for safety
+          : "Success notification"
       fallbackNotification("success", safeMessage)
     } catch (fallbackError) {
       console.error("Fallback notification also failed:", fallbackError)
@@ -328,9 +329,10 @@ export const showError = (
   } catch (error) {
     console.error("Failed to show error notification:", error)
     try {
-      const safeMessage = typeof message === "string" && message.trim() 
-        ? message.slice(0, 100) // Limit length for safety
-        : "Error notification"
+      const safeMessage =
+        typeof message === "string" && message.trim()
+          ? message.slice(0, 100) // Limit length for safety
+          : "Error notification"
       fallbackNotification("error", safeMessage)
     } catch (fallbackError) {
       console.error("Fallback notification also failed:", fallbackError)
@@ -394,9 +396,10 @@ export const showInfo = (
   } catch (error) {
     console.error("Failed to show info notification:", error)
     try {
-      const safeMessage = typeof message === "string" && message.trim() 
-        ? message.slice(0, 100) // Limit length for safety
-        : "Info notification"
+      const safeMessage =
+        typeof message === "string" && message.trim()
+          ? message.slice(0, 100) // Limit length for safety
+          : "Info notification"
       fallbackNotification("info", safeMessage)
     } catch (fallbackError) {
       console.error("Fallback notification also failed:", fallbackError)

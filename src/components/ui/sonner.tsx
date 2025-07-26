@@ -55,7 +55,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       <ToasterErrorBoundary>
         <Sonner
           theme={theme as ToasterProps["theme"]}
-          className="toaster group"
+          className="toaster group" // eslint-disable-line tailwindcss/no-custom-classname
           position="bottom-right"
           expand={false}
           richColors
