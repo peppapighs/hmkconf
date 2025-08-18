@@ -16,13 +16,12 @@
 import { create } from "zustand"
 import { immer } from "zustand/middleware/immer"
 
+import { HE60_METADATA } from "@/constants/dummy-metadata"
 import { DEFAULT_TICK_RATE, HMK_VERSION } from "@/constants/libhmk"
 import { DEFAULT_ACTUATION } from "@/constants/libhmk/actuation"
 import { DEFAULT_ADVANCED_KEY } from "@/constants/libhmk/advanced-keys"
 import { DEFAULT_GAMEPAD_OPTIONS } from "@/constants/libhmk/gamepad"
-import HE60 from "@/keyboards/HE60.json"
 import { KeyboardAction, KeyboardState } from "@/types/keyboard"
-import { keyboardMetadataSchema } from "@/types/keyboard/metadata"
 import {
   HMKActuation,
   HMKAdvancedKey,
@@ -31,7 +30,7 @@ import {
   HMKOptions,
 } from "@/types/libhmk"
 
-const DEMO_KEYBOARD_METADATA = keyboardMetadataSchema.parse(HE60)
+const DEMO_KEYBOARD_METADATA = HE60_METADATA
 
 type DemoKeyboardState = KeyboardState & {
   options: HMKOptions

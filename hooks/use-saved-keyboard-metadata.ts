@@ -17,7 +17,6 @@ import { useLocalStorage } from "usehooks-ts"
 import z from "zod"
 
 import { SAVED_KEYBOARD_METADATA_KEY } from "@/constants/keyboard"
-import { KEYBOARD_METADATA } from "@/keyboards"
 import {
   KeyboardMetadata,
   keyboardMetadataSchema,
@@ -44,7 +43,7 @@ export function useSavedKeyboardMetadata() {
 
   const addMetadata = (metadata: KeyboardMetadata) => {
     if (
-      [...KEYBOARD_METADATA, ...savedMetadata].some(
+      savedMetadata.some(
         ({ vendorId, productId }) =>
           vendorId === metadata.vendorId && productId === metadata.productId,
       )

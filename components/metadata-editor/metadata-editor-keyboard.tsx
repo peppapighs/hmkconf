@@ -13,15 +13,14 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { HE60_METADATA } from "@/constants/dummy-metadata"
 import { useSavedKeyboardMetadata } from "@/hooks/use-saved-keyboard-metadata"
-import HE60 from "@/keyboards/HE60.json"
-import { keyboardMetadataSchema } from "@/types/keyboard/metadata"
 
 import { useMetadataEditor } from "."
 import { KeyboardEditorKeyboard } from "../common/keyboard-editor"
 import { KeyButton } from "../configurator/common/key-button"
 
-const { layout: DEFAULT_LAYOUT } = keyboardMetadataSchema.parse(HE60)
+const { layout: DEFAULT_LAYOUT } = HE60_METADATA
 
 export function MetadataEditorKeyboard() {
   const { savedMetadata } = useSavedKeyboardMetadata()

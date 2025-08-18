@@ -78,7 +78,7 @@ export function AppConfigurator() {
           </div>
           <Button asChild variant="link">
             <Link href="/metadata" replace>
-              <PaintbrushIcon /> Edit Keyboard Metadata
+              <PaintbrushIcon /> Keyboard Metadata Viewer
             </Link>
           </Button>
         </div>

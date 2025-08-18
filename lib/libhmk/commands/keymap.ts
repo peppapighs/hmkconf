@@ -43,6 +43,7 @@ export async function getKeymap(
 
   return ret
 }
+
 const SET_KEYMAP_MAX_ENTRIES = 59
 
 export async function setKeymap(

@@ -13,7 +13,7 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { v7 as uuidv7 } from "uuid"
 
 import {
@@ -21,7 +21,6 @@ import {
   HMK_DEVICE_USAGE_PAGE,
   HMK_VERSION,
 } from "@/constants/libhmk"
-import { KEYBOARD_METADATA } from "@/keyboards"
 import { CommandDevice } from "@/lib/command-device"
 import {
   getActuationMap,
@@ -48,6 +47,7 @@ import {
   setGamepadOptions,
 } from "@/lib/libhmk/commands/gamepad-options"
 import { getKeymap, setKeymap } from "@/lib/libhmk/commands/keymap"
+import { getMetadata } from "@/lib/libhmk/commands/metadata"
 import { getOptions, setOptions } from "@/lib/libhmk/commands/options"
 import {
   duplicateProfile,
@@ -60,8 +60,7 @@ import { getTickRate, setTickRate } from "@/lib/libhmk/commands/tick-rate"
 import { displayVersion } from "@/lib/ui"
 import { isWebHIDSupported } from "@/lib/utils"
 import { KeyboardAction, KeyboardState } from "@/types/keyboard"
-
-import { useSavedKeyboardMetadata } from "./use-saved-keyboard-metadata"
+import { KeyboardMetadata } from "@/types/keyboard/metadata"
 
 export type HMKKeyboardState = KeyboardState & {
   device: CommandDevice
@@ -70,13 +69,7 @@ export type HMKKeyboardState = KeyboardState & {
 type HMKKeyboard = HMKKeyboardState & KeyboardAction
 
 export function useHMKKeyboard() {
-  const { savedMetadata } = useSavedKeyboardMetadata()
-
   const [keyboard, setKeyboard] = useState<HMKKeyboard | null>(null)
-  const keyboardMetadata = useMemo(
-    () => [...KEYBOARD_METADATA, ...savedMetadata],
-    [savedMetadata],
-  )
 
   const connect = async () => {
     if (!isWebHIDSupported()) {
@@ -97,12 +90,9 @@ export function useHMKKeyboard() {
     if (devices.length === 0) {
       devices.push(
         ...(await navigator.hid.requestDevice({
-          filters: keyboardMetadata.map(({ vendorId, productId }) => ({
-            vendorId,
-            productId,
-            usagePage: HMK_DEVICE_USAGE_PAGE,
-            usage: HMK_DEVICE_USAGE_ID,
-          })),
+          filters: [
+            { usagePage: HMK_DEVICE_USAGE_PAGE, usage: HMK_DEVICE_USAGE_ID },
+          ],
         })),
       )
     }
@@ -112,16 +102,6 @@ export function useHMKKeyboard() {
     }
 
     const device = devices[0]
-    const metadata = keyboardMetadata.find(
-      ({ vendorId, productId }) =>
-        device.vendorId === vendorId && device.productId === productId,
-    )
-
-    if (metadata === undefined) {
-      // Should be unreachable
-      await device.forget()
-      throw new Error("No keyboard metadata found for the selected device.")
-    }
 
     if (!device.opened) {
       await device.open()
@@ -129,19 +109,26 @@ export function useHMKKeyboard() {
 
     const keyboardState: HMKKeyboardState = {
       id: uuidv7(),
-      metadata,
+      metadata: {} as KeyboardMetadata,
       isDemo: false,
       device: new CommandDevice(device),
     }
 
-    const version = await firmwareVersion(keyboardState)
-    if (version < HMK_VERSION) {
+    try {
+      const version = await firmwareVersion(keyboardState)
+      if (version < HMK_VERSION) {
+        throw new Error(
+          `Device firmware version ${displayVersion(version)} is outdated. Please update the firmware to ${displayVersion(HMK_VERSION)} or later.`,
+        )
+      }
+
+      const metadata = await getMetadata(keyboardState)
+      keyboardState.metadata = metadata
+    } catch (err) {
       await keyboardState.device.clear()
       await device.forget()
 
-      throw new Error(
-        `Device firmware version ${displayVersion(version)} is outdated. Please update the firmware to ${displayVersion(HMK_VERSION)} or later.`,
-      )
+      throw err
     }
 
     const hmkKeyboard: HMKKeyboard = {
