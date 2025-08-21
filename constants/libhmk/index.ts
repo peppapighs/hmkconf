@@ -13,7 +13,7 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-export const HMK_VERSION = 0x0102
+export const HMK_VERSION = 0x0103
 
 export const HMK_DEVICE_USAGE_PAGE = 0xffab
 export const HMK_DEVICE_USAGE_ID = 0xab
