@@ -16,7 +16,7 @@
 import { uint16Schema } from "$lib/integer"
 import z from "zod"
 
-export const HMK_FIRMWARE_VERSION = 0x0102
+export const HMK_FIRMWARE_VERSION = 0x0103
 
 export const HMK_DEVICE_USAGE_PAGE = 0xffab
 export const HMK_DEVICE_USAGE_ID = 0xab
