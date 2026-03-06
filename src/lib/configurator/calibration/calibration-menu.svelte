@@ -20,14 +20,18 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   import Switch from "$lib/components/switch.svelte"
   import { Button } from "$lib/components/ui/button"
   import { keyboardContext } from "$lib/keyboard"
+  import { isFeatureAvailable } from "$lib/utils"
+  import { toast } from "svelte-sonner"
   import { analogInfoQueryContext } from "../queries/analog-info-query.svelte"
   import { calibrationQueryContext } from "../queries/calibration.query.svelte"
   import { optionsQueryContext } from "../queries/options-query.svelte"
 
+  const keyboard = keyboardContext.get()
   const {
     demo,
+    version,
     metadata: { adcResolution },
-  } = keyboardContext.get()
+  } = keyboard
 
   const analogInfoQuery = analogInfoQueryContext.get()
   const calibrationQuery = calibrationQueryContext.get()
@@ -38,18 +42,22 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 
 <div class="grid size-full grid-cols-[minmax(0,1fr)_24rem]">
   <FixedScrollArea class="flex flex-col gap-4 p-4">
-    <Switch
-      bind:checked={
-        () => options?.saveBottomOutThreshold ?? false,
-        (v) =>
-          options &&
-          optionsQuery.set({ data: { ...options, saveBottomOutThreshold: v } })
-      }
-      disabled={demo || !options}
-      id="save-bottom-out-threshold"
-      title="Save Bottom Out Threshold"
-      description="Periodically save the per-key bottom-out threshold values after some inactivity to be restored on next boot. The saved values will only be cleared on recalibration. This setting applies globally across all profiles."
-    />
+    {#if !isFeatureAvailable("saveCalibrationThreshold", version)}
+      <Switch
+        bind:checked={
+          () => options?.saveBottomOutThreshold ?? false,
+          (v) =>
+            options &&
+            optionsQuery.set({
+              data: { ...options, saveBottomOutThreshold: v },
+            })
+        }
+        disabled={demo || !options}
+        id="save-bottom-out-threshold"
+        title="Save Bottom Out Threshold"
+        description="Periodically save the per-key bottom-out threshold values after some inactivity to be restored on next boot. The saved values will only be cleared on recalibration. This setting applies globally across all profiles."
+      />
+    {/if}
     <CommitSlider
       bind:committed={
         () => calibration?.initialRestValue ?? 0,
@@ -89,14 +97,27 @@ this program. If not, see <https://www.gnu.org/licenses/>.
       step={10}
       title="Initial Bottom Out Threshold"
     />
-    <div>
+    <div class="flex gap-2">
       <Button
         disabled={demo}
         onclick={() => analogInfoQuery.recalibrate()}
         size="sm"
+        variant="destructive"
       >
         Recalibrate
       </Button>
+      {#if isFeatureAvailable("saveCalibrationThreshold", version)}
+        <Button
+          disabled={demo}
+          onclick={async () => {
+            await keyboard.saveCalibrationThreshold()
+            toast.success("Successfully saved calibration threshold.")
+          }}
+          size="sm"
+        >
+          Save Current Threshold
+        </Button>
+      {/if}
     </div>
   </FixedScrollArea>
   <FixedScrollArea class="flex flex-col gap-4 p-4">

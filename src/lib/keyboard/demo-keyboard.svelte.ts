@@ -127,6 +127,9 @@ export class DemoKeyboard implements Keyboard {
       this.#state.profiles[srcProfile],
     )
   }
+  async saveCalibrationThreshold() {
+    return
+  }
 
   async getKeymap({ profile }: GetKeymapParams) {
     return this.#state.profiles[profile].keymap

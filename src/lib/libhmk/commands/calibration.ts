@@ -51,3 +51,10 @@ export async function setCalibration(
     ],
   })
 }
+
+export async function saveCalibrationThreshold(commander: Commander) {
+  await commander.sendCommand({
+    command: HMK_Command.SAVE_CALIBRATION_THRESHOLD,
+    payload: [],
+  })
+}

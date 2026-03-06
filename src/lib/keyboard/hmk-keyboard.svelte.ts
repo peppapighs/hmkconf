@@ -32,6 +32,7 @@ import { bootloader } from "$lib/libhmk/commands/bootloader"
 import {
   getCalibration,
   recalibrate,
+  saveCalibrationThreshold,
   setCalibration,
 } from "$lib/libhmk/commands/calibration"
 import { factoryReset } from "$lib/libhmk/commands/factory-reset"
@@ -154,6 +155,9 @@ class HMKKeyboard implements Keyboard {
   }
   duplicateProfile(params: DuplicateProfileParams) {
     return duplicateProfile(this.commander, params)
+  }
+  saveCalibrationThreshold() {
+    return saveCalibrationThreshold(this.commander)
   }
 
   getKeymap(params: GetKeymapParams) {
