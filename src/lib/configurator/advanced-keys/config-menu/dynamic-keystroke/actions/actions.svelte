@@ -1,4 +1,4 @@
-<!-- 
+<!--
 This program is free software: you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
 Foundation, either version 3 of the License, or (at your option) any later
@@ -38,7 +38,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
       class="grid grid-rows-[2rem_repeat(4,minmax(0,1fr))] gap-y-2 select-none"
       style="
         grid-template-columns: 5rem repeat(4, {DKS_BIT_COLUMN_WIDTH}px);
-        grid-template-areas: 
+        grid-template-areas:
           'bindings icon0 icon1 icon2 icon3'
           'key0 action0 action0 action0 action0'
           'key1 action1 action1 action1 action1'
