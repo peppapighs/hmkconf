@@ -31,6 +31,7 @@ import {
   defaultAdvancedKey,
   HMK_AKType,
   HMK_DKSAction,
+  HMK_DKS_NUM_ACTIONS,
   HMK_NullBindBehavior,
   type HMK_AdvancedKey,
 } from "$lib/libhmk/advanced-keys"
@@ -61,7 +62,7 @@ export const advancedKeyMetadata: AdvancedKeyMetadata[] = [
     icon: LayersIcon,
     title: "Dynamic Keystroke",
     description:
-      "Assign up to 4 bindings to a single key. Each binding can be configured with 4 different actions based on the key's position.",
+      "Assign multiple bindings to a single key. Each binding can be configured with 4 different actions based on the key's position.",
     numKeys: 1,
     keycodes: [Keycode.AK_DYNAMIC_KEYSTROKE],
   },
@@ -104,8 +105,9 @@ export function createAdvancedKey(options: {
   type: HMK_AKType
   keys: number[]
   keycodes: Keycode[]
+  dynamicKeystrokeMaxBindings: number
 }): HMK_AdvancedKey {
-  const { layer, type, keys, keycodes } = options
+  const { layer, type, keys, keycodes, dynamicKeystrokeMaxBindings } = options
 
   switch (type) {
     case HMK_AKType.NULL_BIND:
@@ -125,7 +127,10 @@ export function createAdvancedKey(options: {
         key: keys[0],
         action: {
           type,
-          keycodes: [keycodes[0], Keycode.KC_NO, Keycode.KC_NO, Keycode.KC_NO],
+          keycodes: [
+            keycodes[0],
+            ...Array(dynamicKeystrokeMaxBindings - 1).fill(Keycode.KC_NO),
+          ],
           bitmap: [
             [
               HMK_DKSAction.PRESS,
@@ -133,9 +138,9 @@ export function createAdvancedKey(options: {
               HMK_DKSAction.HOLD,
               HMK_DKSAction.RELEASE,
             ],
-            Array(4).fill(HMK_DKSAction.HOLD),
-            Array(4).fill(HMK_DKSAction.HOLD),
-            Array(4).fill(HMK_DKSAction.HOLD),
+            ...Array(dynamicKeystrokeMaxBindings - 1)
+              .fill(null)
+              .map(() => Array(HMK_DKS_NUM_ACTIONS).fill(HMK_DKSAction.HOLD)),
           ],
           bottomOutPoint: DEFAULT_BOTTOM_OUT_POINT,
         },
@@ -234,7 +239,7 @@ export function bitmapToIntervals(bitmap: HMK_DKSAction[]) {
   const ret: [number, number][] = []
 
   let left = null
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < HMK_DKS_NUM_ACTIONS; i++) {
     if (bitmap[i] === HMK_DKSAction.HOLD) continue
 
     if (left !== null) {
@@ -253,14 +258,16 @@ export function bitmapToIntervals(bitmap: HMK_DKSAction[]) {
 }
 
 export function intervalsToBitmap(intervals: [number, number][]) {
-  const bitmap: HMK_DKSAction[] = Array(4).fill(HMK_DKSAction.HOLD)
+  const bitmap: HMK_DKSAction[] = Array(HMK_DKS_NUM_ACTIONS).fill(
+    HMK_DKSAction.HOLD,
+  )
 
   for (const [l, r] of intervals) {
     if (l === r) {
       bitmap[l] = HMK_DKSAction.TAP
     } else {
       bitmap[l] = HMK_DKSAction.PRESS
-      if (r < 4) bitmap[r] = HMK_DKSAction.RELEASE
+      if (r < HMK_DKS_NUM_ACTIONS) bitmap[r] = HMK_DKSAction.RELEASE
     }
   }
 

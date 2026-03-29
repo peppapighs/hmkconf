@@ -17,7 +17,9 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   import { EditIcon, TrashIcon } from "@lucide/svelte"
   import * as KeycodeButton from "$lib/components/keycode-button"
   import { Button } from "$lib/components/ui/button"
+  import { ScrollArea } from "$lib/components/ui/scroll-area"
   import { HMK_AKType, type HMK_AdvancedKey } from "$lib/libhmk/advanced-keys"
+  import { Keycode } from "$lib/libhmk/keycodes"
   import { unitToStyle } from "$lib/ui"
   import { cn, type WithoutChildren } from "$lib/utils"
   import type { Snippet } from "svelte"
@@ -58,7 +60,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
       case HMK_AKType.NULL_BIND:
         return getNullBindBehaviorMetadata(action.behavior).title
       case HMK_AKType.DYNAMIC_KEYSTROKE:
-        return [...action.keycodes]
+        return action.keycodes.filter((keycode) => keycode !== Keycode.KC_NO)
       case HMK_AKType.TAP_HOLD:
         return [action.tapKeycode, action.holdKeycode]
       case HMK_AKType.TOGGLE:
@@ -91,26 +93,30 @@ this program. If not, see <https://www.gnu.org/licenses/>.
       </div>
     {/each}
   </div>
-  <div class="flex flex-1 gap-2 p-2">
-    <div class="grid aspect-square place-items-center">
+  <div class="flex min-w-0 flex-1 gap-2 p-2">
+    <div class="grid aspect-square shrink-0 place-items-center">
       <Icon class="size-6" />
     </div>
     {#if typeof display === "string"}
-      <div class="flex items-center text-sm font-medium">
-        {display}
-      </div>
+      <ScrollArea class="min-w-0 flex-1" orientation="horizontal">
+        <div class="flex min-w-max items-center px-0.5 pb-2 text-sm font-medium">
+          {display}
+        </div>
+      </ScrollArea>
     {:else}
-      <div class="flex items-center text-xs">
-        {#each display as keycode, i (i)}
-          <div class="p-0.5" style={unitToStyle()}>
-            <KeycodeButton.Root {keycode}>
-              {#snippet child({ props: { children, ...props } })}
-                <div {...props}>{@render (children as Snippet)?.()}</div>
-              {/snippet}
-            </KeycodeButton.Root>
-          </div>
-        {/each}
-      </div>
+      <ScrollArea class="min-w-0 flex-1" orientation="horizontal">
+        <div class="flex min-w-max items-center pb-2 text-xs">
+          {#each display as keycode, i (i)}
+            <div class="shrink-0 p-0.5" style={unitToStyle()}>
+              <KeycodeButton.Root {keycode}>
+                {#snippet child({ props: { children, ...props } })}
+                  <div {...props}>{@render (children as Snippet)?.()}</div>
+                {/snippet}
+              </KeycodeButton.Root>
+            </div>
+          {/each}
+        </div>
+      </ScrollArea>
     {/if}
   </div>
   <div class="flex shrink-0 items-center gap-2 p-2">

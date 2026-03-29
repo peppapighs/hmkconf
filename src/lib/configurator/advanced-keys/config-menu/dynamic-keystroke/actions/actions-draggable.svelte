@@ -20,6 +20,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     getDKSIntervalWidth,
     intervalsToBitmap,
   } from "$lib/configurator/lib/advanced-keys"
+  import { HMK_DKS_NUM_ACTIONS } from "$lib/libhmk/advanced-keys"
   import { dksActionsStateContext } from "./context.svelte"
 
   const { col }: { col: number } = $props()
@@ -38,7 +39,8 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   let draggableLeft = $state(0)
 
   const updateCurrentBitmap = () => {
-    const upperBound = intervals.find(([l]) => l > col)?.[0] ?? 3
+    const upperBound =
+      intervals.find(([l]) => l > col)?.[0] ?? HMK_DKS_NUM_ACTIONS - 1
     const currBarWidth = Math.min(
       draggableLeft + intervalWidth - (index === -1 ? DKS_ACTION_SIZE / 2 : 0),
       getDKSIntervalWidth([col, upperBound]),

@@ -14,12 +14,9 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 -->
 
 <script lang="ts">
-  import { Button } from "$lib/components/ui/button"
   import { advancedKeysStateContext } from "$lib/configurator/context.svelte"
-  import { getAdvancedKeyMetadata } from "$lib/configurator/lib/advanced-keys"
   import { advancedKeysQueryContext } from "$lib/configurator/queries/advanced-keys-query.svelte"
-  import AdvancedKeysDeleteDialog from "../advanced-keys-delete-dialog.svelte"
-  import ConfigMenuContent from "./config-menu-content.svelte"
+  import ConfigMenuEditor from "./config-menu-editor.svelte"
 
   const advancedKeysState = advancedKeysStateContext.get()
   const { index } = $derived(advancedKeysState)
@@ -38,22 +35,5 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     </p>
   </div>
 {:else}
-  <div class="flex size-full flex-col">
-    <div class="flex items-center justify-between gap-4 p-4">
-      <div class="font-semibold">
-        {getAdvancedKeyMetadata(advancedKey.action.type).title}
-      </div>
-      <div class="flex items-center gap-2">
-        <AdvancedKeysDeleteDialog index={index!} {advancedKey}>
-          {#snippet child({ props })}
-            <Button size="sm" variant="destructive" {...props}>Delete</Button>
-          {/snippet}
-        </AdvancedKeysDeleteDialog>
-        <Button onclick={() => advancedKeysState.setIndex(null)} size="sm">
-          Done
-        </Button>
-      </div>
-    </div>
-    <ConfigMenuContent index={index!} {advancedKey} />
-  </div>
+  <ConfigMenuEditor index={index!} {advancedKey} />
 {/if}

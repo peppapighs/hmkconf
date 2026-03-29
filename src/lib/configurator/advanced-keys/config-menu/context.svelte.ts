@@ -17,6 +17,10 @@ import { advancedKeysQueryContext } from "$lib/configurator/queries/advanced-key
 import type { HMK_AdvancedKey } from "$lib/libhmk/advanced-keys"
 import { Context } from "runed"
 
+function cloneAdvancedKey(advancedKey: HMK_AdvancedKey): HMK_AdvancedKey {
+  return JSON.parse(JSON.stringify(advancedKey)) as HMK_AdvancedKey
+}
+
 export type ConfigMenuStateProps = {
   index: number
   advancedKey: HMK_AdvancedKey
@@ -24,21 +28,44 @@ export type ConfigMenuStateProps = {
 
 export class ConfigMenuState {
   advancedKey: HMK_AdvancedKey
+  dirty = $state(false)
+  saving = $state(false)
 
   #index: number
   #advancedKeysQuery = advancedKeysQueryContext.get()
+  #initialAdvancedKey: HMK_AdvancedKey
 
   constructor(props: () => ConfigMenuStateProps) {
     const { index, advancedKey } = $derived(props())
     this.#index = $derived(index)
-    this.advancedKey = $derived(advancedKey)
+    this.#initialAdvancedKey = $derived(advancedKey)
+    this.advancedKey = $state({} as HMK_AdvancedKey)
+
+    $effect(() => {
+      if (!this.dirty && !this.saving) {
+        this.advancedKey = cloneAdvancedKey(this.#initialAdvancedKey)
+      }
+    })
   }
 
   updateAction(action: HMK_AdvancedKey["action"]) {
-    this.#advancedKeysQuery.set({
-      offset: this.#index,
-      data: [{ ...this.advancedKey, action }],
-    })
+    this.advancedKey = { ...this.advancedKey, action }
+    this.dirty = true
+  }
+
+  async save() {
+    if (!this.dirty) return
+
+    this.saving = true
+    try {
+      await this.#advancedKeysQuery.set({
+        offset: this.#index,
+        data: [this.advancedKey],
+      })
+      this.dirty = false
+    } finally {
+      this.saving = false
+    }
   }
 }
 

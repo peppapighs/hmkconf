@@ -23,6 +23,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     HMK_AKDynamicKeystroke,
     HMK_DKSAction,
   } from "$lib/libhmk/advanced-keys"
+  import { HMK_DKS_NUM_ACTIONS } from "$lib/libhmk/advanced-keys"
   import { cn } from "$lib/utils"
   import { configMenuStateContext } from "../../context.svelte"
   import ActionsDraggable from "./actions-draggable.svelte"
@@ -50,7 +51,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 </script>
 
 <div class="relative" style="grid-area: action{row}">
-  {#each { length: 4 }, col (col)}
+  {#each { length: HMK_DKS_NUM_ACTIONS }, col (col)}
     <div
       class={cn(
         "absolute top-1/2 grid -translate-y-1/2 place-items-center rounded-full border bg-card shadow-xs",

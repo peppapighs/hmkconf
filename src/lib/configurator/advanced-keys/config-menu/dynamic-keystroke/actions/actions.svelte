@@ -15,6 +15,8 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 
 <script lang="ts">
   import { DKS_BIT_COLUMN_WIDTH } from "$lib/configurator/lib/advanced-keys"
+  import { keyboardContext } from "$lib/keyboard"
+  import { HMK_DKS_NUM_ACTIONS } from "$lib/libhmk/advanced-keys"
   import { numberNullable, stringNullable } from "$lib/utils"
   import { ToggleGroup } from "bits-ui"
   import { dksConfigMenuStateContext } from "../context.svelte"
@@ -23,7 +25,16 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   import ActionsRow from "./actions-row.svelte"
 
   const dksConfigMenuState = dksConfigMenuStateContext.get()
+  const { dynamicKeystrokeMaxBindings } = keyboardContext.get().metadata
   const { bindingIndex } = $derived(dksConfigMenuState)
+  const gridTemplateAreas = [
+    `'bindings ${Array.from({ length: HMK_DKS_NUM_ACTIONS }, (_, i) => `icon${i}`).join(" ")}'`,
+    ...Array.from(
+      { length: dynamicKeystrokeMaxBindings },
+      (_, row) =>
+        `'key${row} ${Array(HMK_DKS_NUM_ACTIONS).fill(`action${row}`).join(" ")}'`,
+    ),
+  ].join(" ")
 </script>
 
 <ToggleGroup.Root
@@ -35,21 +46,16 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 >
   {#snippet child({ props })}
     <div
-      class="grid grid-rows-[2rem_repeat(4,minmax(0,1fr))] gap-y-2 select-none"
+      class="grid gap-y-2 select-none"
       style="
-        grid-template-columns: 5rem repeat(4, {DKS_BIT_COLUMN_WIDTH}px);
-        grid-template-areas:
-          'bindings icon0 icon1 icon2 icon3'
-          'key0 action0 action0 action0 action0'
-          'key1 action1 action1 action1 action1'
-          'key2 action2 action2 action2 action2'
-          'key3 action3 action3 action3 action3';
+        grid-template-columns: 5rem repeat({HMK_DKS_NUM_ACTIONS}, {DKS_BIT_COLUMN_WIDTH}px);
+        grid-template-areas: {gridTemplateAreas};
       "
       {...props}
     >
       <ActionsHeaders />
       <ActionsKeycodes />
-      {#each { length: 4 }, row (row)}
+      {#each { length: dynamicKeystrokeMaxBindings }, row (row)}
         <ActionsRow {row} />
       {/each}
     </div>

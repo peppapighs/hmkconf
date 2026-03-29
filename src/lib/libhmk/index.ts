@@ -31,6 +31,7 @@ export const HMK_MAX_NUM_PROFILES = 8
 export const HMK_MAX_NUM_LAYERS = 8
 export const HMK_MAX_NUM_KEYS = 256
 export const HMK_MAX_NUM_ADVANCED_KEYS = 64
+export const HMK_MAX_DKS_BINDINGS = 64
 
 export const HMK_MIN_DISTANCE = 4
 export const HMK_MAX_DISTANCE = 255

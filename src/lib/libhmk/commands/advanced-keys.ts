@@ -22,29 +22,43 @@ import type {
 import type { Commander } from "$lib/keyboard/commander"
 import type { KeyboardMetadata } from "$lib/keyboard/metadata"
 import { HMK_Command } from "."
-import { HMK_AKType, type HMK_AdvancedKey } from "../advanced-keys"
+import {
+  HMK_AKType,
+  HMK_DKS_NUM_ACTIONS,
+  getAdvancedKeySize,
+  type HMK_AdvancedKey,
+} from "../advanced-keys"
 
-export const ADVANCED_KEY_SIZE = 12
-const GET_ADVANCED_KEYS_MAX_ENTRIES = 5
+const GET_ADVANCED_KEYS_MAX_BYTES = 62
+const SET_ADVANCED_KEYS_MAX_BYTES = 59
 
 export async function getAdvancedKeys(
   commander: Commander,
-  { numAdvancedKeys }: KeyboardMetadata,
+  { numAdvancedKeys, dynamicKeystrokeMaxBindings }: KeyboardMetadata,
   { profile }: GetAdvancedKeysParams,
 ) {
-  const ret: HMK_AdvancedKey[] = []
-  for (let i = 0; i < numAdvancedKeys; i += GET_ADVANCED_KEYS_MAX_ENTRIES) {
+  const advancedKeySize = getAdvancedKeySize(dynamicKeystrokeMaxBindings)
+  const totalSize = advancedKeySize * numAdvancedKeys
+  const bytes: number[] = []
+
+  for (let offset = 0; offset < totalSize; offset += GET_ADVANCED_KEYS_MAX_BYTES) {
+    const len = Math.min(GET_ADVANCED_KEYS_MAX_BYTES, totalSize - offset)
     const view = await commander.sendCommand({
       command: HMK_Command.GET_ADVANCED_KEYS,
-      payload: [profile, i],
+      payload: [profile, ...uint16ToUInt8s(offset), len],
     })
 
-    for (
-      let j = 0;
-      j < GET_ADVANCED_KEYS_MAX_ENTRIES && i + j < numAdvancedKeys;
-      j++
-    ) {
-      const reader = new DataViewReader(view, j * ADVANCED_KEY_SIZE)
+    const reader = new DataViewReader(view)
+    const chunkLen = reader.uint8()
+    for (let i = 0; i < chunkLen; i++) {
+      bytes.push(reader.uint8())
+    }
+  }
+
+  const ret: HMK_AdvancedKey[] = []
+  const view = new DataView(Uint8Array.from(bytes).buffer)
+  for (let i = 0; i < numAdvancedKeys; i++) {
+      const reader = new DataViewReader(view, i * advancedKeySize)
       const layer = reader.uint8()
       const key = reader.uint8()
       const type = reader.uint8()
@@ -68,10 +82,14 @@ export async function getAdvancedKeys(
             key,
             action: {
               type,
-              keycodes: [...Array(4)].map(() => reader.uint8()),
-              bitmap: [...Array(4)].map(() => {
+              keycodes: [...Array(dynamicKeystrokeMaxBindings)].map(() =>
+                reader.uint8(),
+              ),
+              bitmap: [...Array(dynamicKeystrokeMaxBindings)].map(() => {
                 const bitmapRaw = reader.uint8()
-                return [...Array(4)].map((_, i) => (bitmapRaw >> (i * 2)) & 3)
+                return [...Array(HMK_DKS_NUM_ACTIONS)].map(
+                  (_, i) => (bitmapRaw >> (i * 2)) & 3,
+                )
               }),
               bottomOutPoint: reader.uint8(),
             },
@@ -106,23 +124,20 @@ export async function getAdvancedKeys(
           ret.push({ layer, key, action: { type } })
           break
       }
-    }
   }
 
   return ret
 }
 
-const SET_ADVANCED_KEYS_MAX_ENTRIES = 5
-
 export async function setAdvancedKeys(
   commander: Commander,
+  { dynamicKeystrokeMaxBindings }: KeyboardMetadata,
   { profile, offset, data }: SetAdvancedKeysParams,
 ) {
-  for (let i = 0; i < data.length; i += SET_ADVANCED_KEYS_MAX_ENTRIES) {
-    const part = data.slice(i, i + SET_ADVANCED_KEYS_MAX_ENTRIES)
-    const payload = [profile, offset + i, part.length]
+  const advancedKeySize = getAdvancedKeySize(dynamicKeystrokeMaxBindings)
+  const serialized: number[] = []
 
-    for (const { layer, key, action } of part) {
+  for (const { layer, key, action } of data) {
       const buffer = [layer, key, action.type]
       switch (action.type) {
         case HMK_AKType.NULL_BIND:
@@ -156,13 +171,17 @@ export async function setAdvancedKeys(
         default:
           break
       }
-      buffer.push(...Array(ADVANCED_KEY_SIZE - buffer.length).fill(0))
-      payload.push(...buffer)
-    }
+      buffer.push(...Array(advancedKeySize - buffer.length).fill(0))
+      serialized.push(...buffer)
+  }
 
+  let byteOffset = offset * advancedKeySize
+  for (let i = 0; i < serialized.length; i += SET_ADVANCED_KEYS_MAX_BYTES) {
+    const chunk = serialized.slice(i, i + SET_ADVANCED_KEYS_MAX_BYTES)
     await commander.sendCommand({
       command: HMK_Command.SET_ADVANCED_KEYS,
-      payload,
+      payload: [profile, ...uint16ToUInt8s(byteOffset), chunk.length, ...chunk],
     })
+    byteOffset += chunk.length
   }
 }

@@ -14,7 +14,10 @@
  */
 
 import { bitmapToIntervals } from "$lib/configurator/lib/advanced-keys"
-import { HMK_DKSAction } from "$lib/libhmk/advanced-keys"
+import {
+  HMK_DKSAction,
+  HMK_DKS_NUM_ACTIONS,
+} from "$lib/libhmk/advanced-keys"
 import { Context } from "runed"
 
 export type DKSActionsStateProps = {
@@ -33,7 +36,9 @@ export class DKSActionsState {
     const { bitmap, updateBitmap } = $derived(props())
     this.bitmap = $derived(bitmap)
     this.intervals = $derived(bitmapToIntervals(bitmap))
-    this.currentBitmap = $state(Array(4).fill(HMK_DKSAction.HOLD))
+    this.currentBitmap = $state(
+      Array(HMK_DKS_NUM_ACTIONS).fill(HMK_DKSAction.HOLD),
+    )
     this.currentIntervals = $derived(bitmapToIntervals(this.currentBitmap))
     this.updateBitmap = $derived(updateBitmap)
 
