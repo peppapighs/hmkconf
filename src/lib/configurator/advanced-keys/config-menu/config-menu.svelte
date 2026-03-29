@@ -14,7 +14,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 -->
 
 <script lang="ts">
-  import { advancedKeysStateContext } from "$lib/configurator/context.svelte"
+  import { advancedKeysStateContext } from "../../context.svelte"
   import { advancedKeysQueryContext } from "$lib/configurator/queries/advanced-keys-query.svelte"
   import ConfigMenuEditor from "./config-menu-editor.svelte"
 

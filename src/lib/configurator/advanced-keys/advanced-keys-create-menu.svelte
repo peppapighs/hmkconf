@@ -34,100 +34,109 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   const advancedKeysState = advancedKeysStateContext.get()
   const { dynamicKeystrokeMaxBindings } = keyboardContext.get().metadata
   const { layer, create } = $derived(advancedKeysState)
-  const { type, keyIndex, keys } = $derived(create!)
+  const type = $derived(create?.type ?? HMK_AKType.NONE)
+  const keyIndex = $derived(create?.keyIndex ?? null)
+  const keys = $derived(create?.keys ?? [])
 
   const advancedKeysQuery = advancedKeysQueryContext.get()
   const { current: advancedKeys } = $derived(advancedKeysQuery.advancedKeys)
   const { current: keymap } = $derived(keymapQueryContext.get().keymap)
 
-  const { title, description, numKeys } = $derived(getAdvancedKeyMetadata(type))
+  const metadata = $derived(
+    type === HMK_AKType.NONE ? null : getAdvancedKeyMetadata(type),
+  )
+  const title = $derived(metadata?.title ?? "")
+  const description = $derived(metadata?.description ?? "")
+  const numKeys = $derived(metadata?.numKeys ?? 0)
 </script>
 
-<FixedScrollArea class="flex flex-col gap-2 p-4">
-  <div class="flex items-center justify-between gap-4">
-    <div class="font-semibold">{title}</div>
-    <div class="flex items-center gap-2">
-      <Button
-        onclick={() => advancedKeysState.createClose()}
-        size="sm"
-        variant="outline"
-      >
-        Cancel
-      </Button>
-      <Button
-        disabled={!advancedKeys || !keymap || keys.some((key) => key === null)}
-        onclick={() => {
-          if (!advancedKeys || !keymap) return
-          const index = advancedKeys.findIndex(
-            ({ action: { type } }) => type === HMK_AKType.NONE,
-          )
-          if (index !== -1) {
-            advancedKeysQuery.set({
-              offset: index,
-              data: [
-                createAdvancedKey({
-                  layer,
-                  type,
-                  keys: keys as number[],
-                  keycodes: keys.map((key) => keymap[layer][key!]),
-                  dynamicKeystrokeMaxBindings,
-                }),
-              ],
-            })
-            advancedKeysState.setIndex(index)
+{#if create !== null && metadata !== null}
+  <FixedScrollArea class="flex flex-col gap-2 p-4">
+    <div class="flex items-center justify-between gap-4">
+      <div class="font-semibold">{title}</div>
+      <div class="flex items-center gap-2">
+        <Button
+          onclick={() => advancedKeysState.createClose()}
+          size="sm"
+          variant="outline"
+        >
+          Cancel
+        </Button>
+        <Button
+          disabled={!advancedKeys || !keymap || keys.some((key) => key === null)}
+          onclick={() => {
+            if (!advancedKeys || !keymap) return
+            const index = advancedKeys.findIndex(
+              ({ action: { type } }) => type === HMK_AKType.NONE,
+            )
+            if (index !== -1) {
+              advancedKeysQuery.set({
+                offset: index,
+                data: [
+                  createAdvancedKey({
+                    layer,
+                    type,
+                    keys: keys as number[],
+                    keycodes: keys.map((key) => keymap[layer][key!]),
+                    dynamicKeystrokeMaxBindings,
+                  }),
+                ],
+              })
+              advancedKeysState.setIndex(index)
+            }
+          }}
+          size="sm"
+        >
+          Continue
+        </Button>
+      </div>
+    </div>
+    <div class="flex flex-col gap-4">
+      <div class="grid text-sm">
+        <span class="font-medium">
+          {`Select ${numKeys > 1 ? `${numKeys} keys` : `${numKeys} key`} to assign ${title} to.`}
+        </span>
+        <span class="text-muted-foreground">{description}</span>
+      </div>
+      <div class="grid place-items-center">
+        <ToggleGroup.Root
+          bind:value={
+            () => stringNullable(keyIndex),
+            (v) => v !== "" && advancedKeysState.createSetKeyIndex(Number(v))
           }
-        }}
-        size="sm"
-      >
-        Continue
-      </Button>
-    </div>
-  </div>
-  <div class="flex flex-col gap-4">
-    <div class="grid text-sm">
-      <span class="font-medium">
-        {`Select ${numKeys > 1 ? `${numKeys} keys` : `${numKeys} key`} to assign ${title} to.`}
-      </span>
-      <span class="text-muted-foreground">{description}</span>
-    </div>
-    <div class="grid place-items-center">
-      <ToggleGroup.Root
-        bind:value={
-          () => stringNullable(keyIndex),
-          (v) => v !== "" && advancedKeysState.createSetKeyIndex(Number(v))
-        }
-        class="flex"
-        type="single"
-      >
-        {#each { length: numKeys }, i (i)}
-          <div class="flex flex-col items-center text-center text-base">
-            <div class="text-muted-foreground">Key {i + 1}</div>
-            <div class="p-0.5" style={unitToStyle()}>
-              {#if !advancedKeys || !keymap}
-                <KeycodeButton.Skeleton />
-              {:else}
-                <ToggleGroup.Item value={String(i)}>
-                  {#snippet child({ props })}
-                    {#if keys[i] !== null}
-                      <KeycodeButton.Root
-                        keycode={keymap[layer][keys[i]]}
-                        {...props}
-                      />
-                    {:else}
-                      <KeyButton
-                        class="border-dashed font-normal text-muted-foreground"
-                        {...props}
-                      >
-                        <span>Assign</span>
-                      </KeyButton>
-                    {/if}
-                  {/snippet}
-                </ToggleGroup.Item>
-              {/if}
+          class="flex"
+          type="single"
+        >
+          {#each { length: numKeys }, i (i)}
+            <div class="flex flex-col items-center text-center text-base">
+              <div class="text-muted-foreground">Key {i + 1}</div>
+              <div class="p-0.5" style={unitToStyle()}>
+                {#if !advancedKeys || !keymap}
+                  <KeycodeButton.Skeleton />
+                {:else}
+                  <ToggleGroup.Item value={String(i)}>
+                    {#snippet child({ props })}
+                      {#if keys[i] !== null}
+                        <KeycodeButton.Root
+                          keycode={keymap[layer][keys[i]]}
+                          {...props}
+                        />
+                      {:else}
+                        <KeyButton
+                          class="border-dashed font-normal text-muted-foreground"
+                          {...props}
+                        >
+                          <span>Assign</span>
+                        </KeyButton>
+                      {/if}
+                    {/snippet}
+                  </ToggleGroup.Item>
+                {/if}
+              </div>
             </div>
-          </div>
-        {/each}
-      </ToggleGroup.Root>
+          {/each}
+        </ToggleGroup.Root>
+      </div>
     </div>
-  </div>
-</FixedScrollArea>
+  </FixedScrollArea>
+{/if}

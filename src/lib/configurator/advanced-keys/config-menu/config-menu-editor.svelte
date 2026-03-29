@@ -15,7 +15,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 
 <script lang="ts">
   import { Button } from "$lib/components/ui/button"
-  import { advancedKeysStateContext } from "$lib/configurator/context.svelte"
+  import { advancedKeysStateContext } from "../../context.svelte"
   import { getAdvancedKeyMetadata } from "$lib/configurator/lib/advanced-keys"
   import type { HMK_AdvancedKey } from "$lib/libhmk/advanced-keys"
   import AdvancedKeysDeleteDialog from "../advanced-keys-delete-dialog.svelte"
