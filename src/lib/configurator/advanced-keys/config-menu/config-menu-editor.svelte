@@ -32,12 +32,15 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     new ConfigMenuState(() => ({ index, advancedKey })),
   )
   const currentAdvancedKey = $derived(configMenuState.advancedKey)
+  const actionType = $derived(currentAdvancedKey.action?.type)
 </script>
 
 <div class="flex size-full flex-col">
   <div class="flex items-center justify-between gap-4 p-4">
     <div class="font-semibold">
-      {getAdvancedKeyMetadata(currentAdvancedKey.action.type).title}
+      {#if actionType !== undefined}
+        {getAdvancedKeyMetadata(actionType).title}
+      {/if}
     </div>
     <div class="flex items-center gap-2">
       <AdvancedKeysDeleteDialog index={index} advancedKey={advancedKey}>
@@ -64,5 +67,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
       </Button>
     </div>
   </div>
-  <ConfigMenuContent {index} advancedKey={currentAdvancedKey} />
+  {#if actionType !== undefined}
+    <ConfigMenuContent {index} advancedKey={currentAdvancedKey} />
+  {/if}
 </div>

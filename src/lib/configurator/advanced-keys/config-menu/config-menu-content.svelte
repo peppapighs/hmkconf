@@ -34,9 +34,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   } = $props()
 
   const configMenuState = configMenuStateContext.get()
-  const {
-    action: { type },
-  } = $derived(configMenuState.advancedKey)
+  const type = $derived(configMenuState.advancedKey.action?.type)
 </script>
 
 <div
