@@ -22,7 +22,7 @@ export const DEFAULT_TAPPING_TERM = 200
 export const MIN_TAPPING_TERM = 10
 export const MAX_TAPPING_TERM = 1000
 export const DEFAULT_TICK_RATE = 30
-export const HMK_DEFAULT_DKS_MAX_BINDINGS = 32
+export const HMK_DEFAULT_DKS_MAX_BINDINGS = 4
 export const HMK_DKS_NUM_ACTIONS = 4
 
 export function getAdvancedKeySize(dynamicKeystrokeMaxBindings: number) {
@@ -69,10 +69,10 @@ export enum HMK_DKSAction {
 
 export const hmkAKDynamicKeystrokeSchema = z.object({
   type: z.literal(HMK_AKType.DYNAMIC_KEYSTROKE),
-  keycodes: z.array(uint8Schema).min(8).max(HMK_MAX_DKS_BINDINGS),
+  keycodes: z.array(uint8Schema).min(4).max(HMK_MAX_DKS_BINDINGS),
   bitmap: z
     .array(z.array(z.enum(HMK_DKSAction)).length(HMK_DKS_NUM_ACTIONS))
-    .min(8)
+    .min(4)
     .max(HMK_MAX_DKS_BINDINGS),
   bottomOutPoint: uint8Schema,
 })
