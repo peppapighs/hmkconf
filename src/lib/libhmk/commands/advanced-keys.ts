@@ -135,53 +135,51 @@ export async function setAdvancedKeys(
   { profile, offset, data }: SetAdvancedKeysParams,
 ) {
   const advancedKeySize = getAdvancedKeySize(dynamicKeystrokeMaxBindings)
-  const serialized: number[] = []
-
-  for (const { layer, key, action } of data) {
-      const buffer = [layer, key, action.type]
-      switch (action.type) {
-        case HMK_AKType.NULL_BIND:
-          buffer.push(
-            action.secondaryKey,
-            action.behavior,
-            action.bottomOutPoint,
-          )
-          break
-        case HMK_AKType.DYNAMIC_KEYSTROKE:
-          buffer.push(
-            ...action.keycodes,
-            ...action.bitmap.map((bitmap) =>
-              bitmap.reduce((acc, bit, i) => acc | (bit << (2 * i)), 0),
-            ),
-            action.bottomOutPoint,
-          )
-          break
-        case HMK_AKType.TAP_HOLD:
-          buffer.push(
-            action.tapKeycode,
-            action.holdKeycode,
-            ...uint16ToUInt8s(action.tappingTerm),
-            action.holdOnOtherKeyPress ? 1 : 0,
-          )
-          break
-        case HMK_AKType.TOGGLE:
-          buffer.push(action.keycode, ...uint16ToUInt8s(action.tappingTerm))
-          break
-        case HMK_AKType.NONE:
-        default:
-          break
-      }
-      buffer.push(...Array(advancedKeySize - buffer.length).fill(0))
-      serialized.push(...buffer)
+  const serializeAdvancedKey = ({ layer, key, action }: HMK_AdvancedKey) => {
+    const buffer = [layer, key, action.type]
+    switch (action.type) {
+      case HMK_AKType.NULL_BIND:
+        buffer.push(action.secondaryKey, action.behavior, action.bottomOutPoint)
+        break
+      case HMK_AKType.DYNAMIC_KEYSTROKE:
+        buffer.push(
+          ...action.keycodes,
+          ...action.bitmap.map((bitmap) =>
+            bitmap.reduce((acc, bit, i) => acc | (bit << (2 * i)), 0),
+          ),
+          action.bottomOutPoint,
+        )
+        break
+      case HMK_AKType.TAP_HOLD:
+        buffer.push(
+          action.tapKeycode,
+          action.holdKeycode,
+          ...uint16ToUInt8s(action.tappingTerm),
+          action.holdOnOtherKeyPress ? 1 : 0,
+        )
+        break
+      case HMK_AKType.TOGGLE:
+        buffer.push(action.keycode, ...uint16ToUInt8s(action.tappingTerm))
+        break
+      case HMK_AKType.NONE:
+      default:
+        break
+    }
+    buffer.push(...Array(advancedKeySize - buffer.length).fill(0))
+    return buffer
   }
 
-  let byteOffset = offset * advancedKeySize
-  for (let i = 0; i < serialized.length; i += SET_ADVANCED_KEYS_MAX_BYTES) {
-    const chunk = serialized.slice(i, i + SET_ADVANCED_KEYS_MAX_BYTES)
-    await commander.sendCommand({
-      command: HMK_Command.SET_ADVANCED_KEYS,
-      payload: [profile, ...uint16ToUInt8s(byteOffset), chunk.length, ...chunk],
-    })
-    byteOffset += chunk.length
+  for (let keyIndex = 0; keyIndex < data.length; keyIndex++) {
+    const serialized = serializeAdvancedKey(data[keyIndex])
+    let byteOffset = (offset + keyIndex) * advancedKeySize
+
+    for (let i = 0; i < serialized.length; i += SET_ADVANCED_KEYS_MAX_BYTES) {
+      const chunk = serialized.slice(i, i + SET_ADVANCED_KEYS_MAX_BYTES)
+      await commander.sendCommand({
+        command: HMK_Command.SET_ADVANCED_KEYS,
+        payload: [profile, ...uint16ToUInt8s(byteOffset), chunk.length, ...chunk],
+      })
+      byteOffset += chunk.length
+    }
   }
 }
