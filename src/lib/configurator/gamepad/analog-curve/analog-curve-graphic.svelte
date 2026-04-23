@@ -24,8 +24,8 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   const { viewCurve } = $derived(analogCurveStateContext.get())
 </script>
 
-<div class="border" style="grid-area: curve"></div>
-<div class="relative z-10" style="grid-area: curve">
+<div class="border" style:grid-area="curve"></div>
+<div class="relative z-10" style:grid-area="curve">
   <svg
     class="size-full"
     preserveAspectRatio="none"
@@ -47,7 +47,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   </svg>
   <div
     class="absolute inset-y-0 left-0 flex flex-col items-center overflow-hidden bg-muted"
-    style="width: {viewCurve[0].x}px"
+    style:width="{viewCurve[0].x}px"
   >
     <Tooltip.Root>
       <Tooltip.Trigger class="m-2 text-sm text-muted-foreground">
@@ -60,7 +60,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   </div>
   <div
     class="absolute inset-y-0 right-0 flex flex-col items-center overflow-hidden bg-muted"
-    style="width: {CURVE_VIEW_WIDTH - viewCurve[3].x}px"
+    style:width="{CURVE_VIEW_WIDTH - viewCurve[3].x}px"
   >
     <Tooltip.Root>
       <Tooltip.Trigger class="m-2 text-sm text-muted-foreground">

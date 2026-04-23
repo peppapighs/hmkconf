@@ -173,10 +173,10 @@ class HMKKeyboard implements Keyboard {
     return setActuationMap(this.commander, params)
   }
   getAdvancedKeys(params: GetAdvancedKeysParams) {
-    return getAdvancedKeys(this.commander, this.metadata, params)
+    return getAdvancedKeys(this.version, this.commander, this.metadata, params)
   }
   setAdvancedKeys(params: SetAdvancedKeysParams) {
-    return setAdvancedKeys(this.commander, params)
+    return setAdvancedKeys(this.version, this.commander, this.metadata, params)
   }
   getTickRate(params: GetTickRateParams) {
     return getTickRate(this.commander, params)

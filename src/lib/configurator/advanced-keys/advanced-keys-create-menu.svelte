@@ -18,6 +18,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   import { KeyButton } from "$lib/components/key-button"
   import * as KeycodeButton from "$lib/components/keycode-button"
   import { Button } from "$lib/components/ui/button"
+  import { keyboardContext } from "$lib/keyboard"
   import { HMK_AKType } from "$lib/libhmk/advanced-keys"
   import { unitToStyle } from "$lib/ui"
   import { stringNullable } from "$lib/utils"
@@ -30,6 +31,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   import { advancedKeysQueryContext } from "../queries/advanced-keys-query.svelte"
   import { keymapQueryContext } from "../queries/keymap-query.svelte"
 
+  const { metadata } = keyboardContext.get()
   const advancedKeysState = advancedKeysStateContext.get()
   const { layer, create } = $derived(advancedKeysState)
   const { type, keyIndex, keys } = $derived(create!)
@@ -63,7 +65,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
             advancedKeysQuery.set({
               offset: index,
               data: [
-                createAdvancedKey({
+                createAdvancedKey(metadata, {
                   layer,
                   type,
                   keys: keys as number[],

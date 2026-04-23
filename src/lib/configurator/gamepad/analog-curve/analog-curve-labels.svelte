@@ -20,37 +20,37 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 
 <div
   class="flex flex-col items-center text-sm text-muted-foreground"
-  style="grid-area: analog-max"
+  style:grid-area="analog-max"
 >
   255
 </div>
 <div
   class="flex -rotate-90 flex-col items-center justify-center text-sm whitespace-nowrap text-muted-foreground"
-  style="grid-area: analog-label"
+  style:grid-area="analog-label"
 >
   Analog Value
 </div>
 <div
   class="flex flex-col items-center justify-end text-sm text-muted-foreground"
-  style="grid-area: analog-min"
+  style:grid-area="analog-min"
 >
   0
 </div>
 <div
   class="flex items-center text-sm text-muted-foreground"
-  style="grid-area: switch-min"
+  style:grid-area="switch-min"
 >
   {displayDistance(HMK_MIN_DISTANCE)}mm
 </div>
 <div
   class="flex items-center justify-center text-sm text-muted-foreground"
-  style="grid-area: switch-label"
+  style:grid-area="switch-label"
 >
   Key Press Distance
 </div>
 <div
   class="flex items-center justify-end text-sm text-muted-foreground"
-  style="grid-area: switch-max"
+  style:grid-area="switch-max"
 >
   {displayDistance(HMK_MAX_DISTANCE)}mm
 </div>

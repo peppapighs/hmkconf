@@ -39,17 +39,15 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     updateBitmap(
       intervalsToBitmap(currentIntervals.filter((_, i) => i !== index)),
     )}
-  style="
-    left: {intervalLeft}px;
-    width: {intervalWidth}px;
-    height: {DKS_ACTION_SIZE}px;
-  "
+  style:left="{intervalLeft}px"
+  style:width="{intervalWidth}px"
+  style:height="{DKS_ACTION_SIZE}px"
 >
   <span class="sr-only">Delete Action</span>
 </button>
 <div
   class="absolute top-1/2 z-20 flex h-4 w-3 -translate-1/2 items-center justify-center rounded-xs border bg-accent"
-  style="left: {intervalLeft + intervalWidth}px"
+  style:left="{intervalLeft + intervalWidth}px"
 >
   <GripVerticalIcon className="size-2.5" />
 </div>

@@ -49,7 +49,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     bind:clientWidth={containerWidth}
     bind:clientHeight={containerHeight}
     class="relative h-full"
-    style="font-size: {fontSize}px"
+    style:font-size="{fontSize}px"
   >
     {#if fontSize > 0}
       <div class="absolute inset-0 grid place-items-center">

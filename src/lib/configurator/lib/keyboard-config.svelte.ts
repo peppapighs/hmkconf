@@ -16,6 +16,7 @@
 import { keyboardContext } from "$lib/keyboard"
 import { keyboardConfigSchema } from "$lib/keyboard/config"
 import { HMK_FIRMWARE_MAX_VERSION } from "$lib/libhmk"
+import { HMK_AKType } from "$lib/libhmk/advanced-keys"
 import { SvelteDate } from "svelte/reactivity"
 import { globalStateContext } from "../context.svelte"
 import { actuationQueryContext } from "../queries/actuation-query.svelte"
@@ -27,8 +28,14 @@ import { tickRateQueryContext } from "../queries/tick-rate-query.svelte"
 export class KeyboardConfig {
   #keyboard = keyboardContext.get()
   #schema = keyboardConfigSchema.superRefine((val, ctx) => {
-    const { vendorId, productId, numLayers, numKeys, numAdvancedKeys } =
-      this.#keyboard.metadata
+    const {
+      vendorId,
+      productId,
+      numLayers,
+      numKeys,
+      numAdvancedKeys,
+      numDynamicKeystrokeMaxBindings,
+    } = this.#keyboard.metadata
     const {
       metadata,
       profile: { keymap, actuationMap, advancedKeys, gamepadButtons },
@@ -72,11 +79,26 @@ export class KeyboardConfig {
       })
     }
 
-    if (advancedKeys !== undefined && advancedKeys.length !== numAdvancedKeys) {
-      ctx.addIssue({
-        code: "custom",
-        message: `Expected advanced keys to have exactly ${numAdvancedKeys} entries.`,
-      })
+    if (advancedKeys !== undefined) {
+      if (advancedKeys.length !== numAdvancedKeys) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Expected advanced keys to have exactly ${numAdvancedKeys} entries.`,
+        })
+      }
+      if (
+        advancedKeys.some(
+          ({ action }) =>
+            action.type === HMK_AKType.DYNAMIC_KEYSTROKE &&
+            (action.keycodes.length !== numDynamicKeystrokeMaxBindings ||
+              action.bitmap.length !== numDynamicKeystrokeMaxBindings),
+        )
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Expected dynamic keystroke to have exactly ${numDynamicKeystrokeMaxBindings} bindings.`,
+        })
+      }
     }
 
     if (gamepadButtons !== undefined && gamepadButtons.length !== numKeys) {

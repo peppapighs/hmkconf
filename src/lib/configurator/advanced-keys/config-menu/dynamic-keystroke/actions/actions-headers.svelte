@@ -22,11 +22,11 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   } from "$lib/configurator/lib/advanced-keys"
 </script>
 
-<div class="grid place-items-center" style="grid-area: bindings">
+<div class="grid place-items-center" style:grid-area="bindings">
   <span class="text-sm font-medium">Bindings</span>
 </div>
 {#each dynamicKeystrokeHeaders as { icon: Icon, tooltip }, i (i)}
-  <div class="flex items-center" style="grid-area: icon{i}">
+  <div class="flex items-center" style:grid-area="icon{i}">
     <Tooltip.Root>
       <Tooltip.Trigger
         class="-translate-x-1/2"

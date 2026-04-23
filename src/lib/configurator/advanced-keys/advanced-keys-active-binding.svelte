@@ -91,7 +91,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
       </div>
     {/each}
   </div>
-  <div class="flex flex-1 gap-2 p-2">
+  <div class="flex flex-1 gap-2 overflow-hidden p-2">
     <div class="grid aspect-square place-items-center">
       <Icon class="size-6" />
     </div>

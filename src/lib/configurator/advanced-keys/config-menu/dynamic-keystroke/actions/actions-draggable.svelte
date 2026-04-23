@@ -93,18 +93,16 @@ this program. If not, see <https://www.gnu.org/licenses/>.
       class="absolute top-1/2 z-30 -translate-y-1/2 rounded-full"
       {onmousedown}
       role="none"
-      style="
-        left: {intervalLeft + draggableLeft}px;
-        width: {DKS_ACTION_SIZE}px;
-        height: {DKS_ACTION_SIZE}px;
-      "
+      style:left="{intervalLeft + draggableLeft}px"
+      style:width="{DKS_ACTION_SIZE}px"
+      style:height="{DKS_ACTION_SIZE}px"
     ></div>
   {:else}
     <div
       class="absolute top-1/2 z-30 h-4 w-3 -translate-1/2 rounded-xs"
       {onmousedown}
       role="none"
-      style="left: {intervalLeft + intervalWidth + draggableLeft}px"
+      style:left="{intervalLeft + intervalWidth + draggableLeft}px"
     ></div>
   {/if}
 {/if}

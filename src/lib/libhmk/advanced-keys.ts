@@ -61,12 +61,22 @@ export enum HMK_DKSAction {
   TAP,
 }
 
-export const hmkAKDynamicKeystrokeSchema = z.object({
-  type: z.literal(HMK_AKType.DYNAMIC_KEYSTROKE),
-  keycodes: z.array(uint8Schema).length(4),
-  bitmap: z.array(z.array(z.enum(HMK_DKSAction)).length(4)).length(4),
-  bottomOutPoint: uint8Schema,
-})
+export const hmkAKDynamicKeystrokeSchema = z
+  .object({
+    type: z.literal(HMK_AKType.DYNAMIC_KEYSTROKE),
+    keycodes: z.array(uint8Schema),
+    bitmap: z.array(z.array(z.enum(HMK_DKSAction)).length(4)),
+    bottomOutPoint: uint8Schema,
+  })
+  .superRefine((val, ctx) => {
+    if (val.keycodes.length !== val.bitmap.length) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Expected keycodes and bitmap to have the same length",
+        input: val,
+      })
+    }
+  })
 
 export type HMK_AKDynamicKeystroke = z.infer<typeof hmkAKDynamicKeystrokeSchema>
 

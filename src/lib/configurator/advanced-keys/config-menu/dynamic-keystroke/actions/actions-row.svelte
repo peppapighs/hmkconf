@@ -49,17 +49,15 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   const { currentIntervals } = $derived(dksActionsStateContext.get())
 </script>
 
-<div class="relative" style="grid-area: action{row}">
+<div class="relative" style:grid-area="action{row}">
   {#each { length: 4 }, col (col)}
     <div
       class={cn(
         "absolute top-1/2 grid -translate-y-1/2 place-items-center rounded-full border bg-card shadow-xs",
       )}
-      style="
-        left: {getDKSIntervalLeft([col, col])}px;
-        width: {DKS_ACTION_SIZE}px;
-        height: {DKS_ACTION_SIZE}px;
-      "
+      style:left="{getDKSIntervalLeft([col, col])}px"
+      style:width="{DKS_ACTION_SIZE}px"
+      style:height="{DKS_ACTION_SIZE}px"
     >
       <PlusIcon class="size-4" />
     </div>

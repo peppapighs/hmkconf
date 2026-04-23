@@ -38,19 +38,20 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   <div class="grid place-items-center">
     <div
       class="grid"
-      style="
-      grid-template-rows: 3rem calc({CURVE_VIEW_HEIGHT}px - 6rem) 3rem 2rem;
-      grid-template-columns: 3rem 4rem calc({CURVE_VIEW_WIDTH}px - 8rem) 4rem;
-      grid-template-areas:
+      style:grid-template-rows="3rem calc({CURVE_VIEW_HEIGHT}px - 6rem) 3rem
+      2rem"
+      style:grid-template-columns="3rem 4rem calc({CURVE_VIEW_WIDTH}px - 8rem)
+      4rem"
+      style:grid-template-areas={`
         'analog-max curve curve curve'
         'analog-label curve curve curve'
         'analog-min curve curve curve'
-        'none switch-min switch-label switch-max';
-    "
+        'none switch-min switch-label switch-max'
+    `}
     >
       <AnalogCurveLabels />
       <AnalogCurveGraphic />
-      <div class="relative" style="grid-area: curve">
+      <div class="relative" style:grid-area="curve">
         {#each { length: 4 }, index (index)}
           <AnalogCurveDraggable {index} />
         {/each}

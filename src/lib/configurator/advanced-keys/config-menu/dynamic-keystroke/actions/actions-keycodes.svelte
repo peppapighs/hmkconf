@@ -28,7 +28,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 </script>
 
 {#each action.keycodes as keycode, i (i)}
-  <div class="grid place-items-center text-sm" style="grid-area: key{i}">
+  <div class="grid place-items-center text-sm" style:grid-area="key{i}">
     <div class="p-0.5" style={unitToStyle()}>
       <ToggleGroup.Item value={String(i)}>
         {#snippet child({ props })}

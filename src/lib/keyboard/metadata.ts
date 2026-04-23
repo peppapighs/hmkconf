@@ -104,6 +104,11 @@ export const keyboardMetadataSchema = z
     numLayers: z.int().min(1).max(HMK_MAX_NUM_LAYERS),
     numKeys: z.int().min(1).max(HMK_MAX_NUM_KEYS),
     numAdvancedKeys: z.int().min(1).max(HMK_MAX_NUM_ADVANCED_KEYS),
+    numDynamicKeystrokeMaxBindings: z
+      .int()
+      .min(1)
+      .max(HMK_MAX_NUM_ADVANCED_KEYS)
+      .default(4),
 
     layout: keyboardLayoutSchema,
     defaultKeymap: z.array(z.array(keycodeSchema)).optional(),
@@ -174,6 +179,7 @@ export const demoMetadata = keyboardMetadataSchema.parse({
   numLayers: 4,
   numKeys: 69,
   numAdvancedKeys: 32,
+  numDynamicKeystrokeMaxBindings: 4,
 
   layout: {
     labels: [

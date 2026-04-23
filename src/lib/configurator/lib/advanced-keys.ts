@@ -25,6 +25,7 @@ import {
   ToggleLeftIcon,
 } from "@lucide/svelte"
 import { displayUInt8 } from "$lib/integer"
+import type { KeyboardMetadata } from "$lib/keyboard/metadata"
 import {
   DEFAULT_BOTTOM_OUT_POINT,
   DEFAULT_TAPPING_TERM,
@@ -99,12 +100,15 @@ export function getAdvancedKeyMetadata(type: HMK_AKType): AdvancedKeyMetadata {
   )
 }
 
-export function createAdvancedKey(options: {
-  layer: number
-  type: HMK_AKType
-  keys: number[]
-  keycodes: Keycode[]
-}): HMK_AdvancedKey {
+export function createAdvancedKey(
+  { numDynamicKeystrokeMaxBindings }: KeyboardMetadata,
+  options: {
+    layer: number
+    type: HMK_AKType
+    keys: number[]
+    keycodes: Keycode[]
+  },
+): HMK_AdvancedKey {
   const { layer, type, keys, keycodes } = options
 
   switch (type) {
@@ -125,7 +129,10 @@ export function createAdvancedKey(options: {
         key: keys[0],
         action: {
           type,
-          keycodes: [keycodes[0], Keycode.KC_NO, Keycode.KC_NO, Keycode.KC_NO],
+          keycodes: [
+            keycodes[0],
+            ...Array(numDynamicKeystrokeMaxBindings - 1).fill(Keycode.KC_NO),
+          ],
           bitmap: [
             [
               HMK_DKSAction.PRESS,
@@ -133,9 +140,9 @@ export function createAdvancedKey(options: {
               HMK_DKSAction.HOLD,
               HMK_DKSAction.RELEASE,
             ],
-            Array(4).fill(HMK_DKSAction.HOLD),
-            Array(4).fill(HMK_DKSAction.HOLD),
-            Array(4).fill(HMK_DKSAction.HOLD),
+            ...[...Array(numDynamicKeystrokeMaxBindings - 1)].map(() =>
+              Array(4).fill(HMK_DKSAction.HOLD),
+            ),
           ],
           bottomOutPoint: DEFAULT_BOTTOM_OUT_POINT,
         },
