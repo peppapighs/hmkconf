@@ -16,6 +16,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 <script lang="ts">
   import FixedScrollArea from "$lib/components/fixed-scroll-area.svelte"
   import { Button } from "$lib/components/ui/button"
+  import * as Empty from "$lib/components/ui/empty"
   import { keyboardContext } from "$lib/keyboard"
   import { HMK_AKType } from "$lib/libhmk/advanced-keys"
   import { advancedKeysStateContext } from "../context.svelte"
@@ -43,7 +44,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     <div class="flex flex-col gap-2">
       {#each advancedKeyMetadata as { type, icon: Icon, title, description } (type)}
         <Button
-          class="size-full gap-4 p-2"
+          class="size-full gap-4 px-4 py-2"
           onclick={() => advancedKeysState.createOpen(type)}
           size="lg"
           variant="outline"
@@ -66,11 +67,11 @@ this program. If not, see <https://www.gnu.org/licenses/>.
       ).padStart(2, "0")})
     </div>
     {#if !advancedKeys || !count}
-      <div
-        class="grid place-items-center rounded-md border border-dashed px-6 py-16 text-center select-none"
-      >
-        <p class="text-sm text-muted-foreground">No active advanced keys...</p>
-      </div>
+      <Empty.Root class="border border-dashed">
+        <Empty.Header>
+          <Empty.Description>No active advanced keys...</Empty.Description>
+        </Empty.Header>
+      </Empty.Root>
     {:else}
       <div class="flex flex-col gap-2">
         {#each advancedKeys as advancedKey, i (i)}

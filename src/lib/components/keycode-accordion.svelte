@@ -26,8 +26,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   import type { HTMLAttributes } from "svelte/elements"
   import { KeycodeButton } from "./keycode-button"
   import * as Accordion from "./ui/accordion"
-  import { Button } from "./ui/button"
-  import { Input } from "./ui/input"
+  import * as InputGroup from "./ui/input-group"
 
   const {
     class: className,
@@ -69,18 +68,15 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 
 <div class={cn("flex w-full flex-col gap-2", className)} {...props}>
   <div class="flex justify-end">
-    <div class="relative">
-      <Input bind:value={search} class="pr-8" placeholder="Search..." />
-      <Button
-        class="absolute top-1/2 right-1.5 size-6 -translate-y-1/2 text-muted-foreground"
-        onclick={() => (search = "")}
-        size="sm"
-        variant="ghost"
-      >
-        <XIcon />
-        <span class="sr-only">Clear Search</span>
-      </Button>
-    </div>
+    <InputGroup.Root class="w-60">
+      <InputGroup.Input bind:value={search} placeholder="Search..." />
+      <InputGroup.Addon align="inline-end">
+        <InputGroup.Button onclick={() => (search = "")} size="icon-xs">
+          <XIcon />
+          <span class="sr-only">Clear Search</span>
+        </InputGroup.Button>
+      </InputGroup.Addon>
+    </InputGroup.Root>
   </div>
   <Accordion.Root
     bind:value={getAccordionValue, setAccordionValue}

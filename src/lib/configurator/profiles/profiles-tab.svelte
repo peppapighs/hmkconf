@@ -125,7 +125,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
                   </Button>
                 {/snippet}
               </DropdownMenu.Trigger>
-              <DropdownMenu.Content align="start">
+              <DropdownMenu.Content align="start" class="w-40">
                 <DropdownMenu.Group>
                   <DropdownMenu.Item onSelect={() => importProfile(profile)}>
                     Import

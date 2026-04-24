@@ -14,7 +14,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 -->
 
 <script lang="ts">
-  import { CableIcon } from "@lucide/svelte"
+  import { CableIcon, ShapesIcon } from "@lucide/svelte"
   import screenshotDark from "$lib/assets/screenshot-dark.png"
   import screenshot from "$lib/assets/screenshot.png"
   import Footer from "$lib/components/footer.svelte"
@@ -61,7 +61,9 @@ this program. If not, see <https://www.gnu.org/licenses/>.
           <Button onclick={() => handleConnect()} size="lg">
             <CableIcon /> Connect Keyboard
           </Button>
-          <Button href="/demo" size="lg" variant="outline">Try Demo</Button>
+          <Button href="/demo" size="lg" variant="outline">
+            <ShapesIcon /> Try Demo
+          </Button>
         </div>
       </div>
       <div class="mt-16 grid place-items-center">

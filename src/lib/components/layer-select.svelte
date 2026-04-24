@@ -52,7 +52,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     variant="outline"
   >
     {#each { length: numLayers }, i (i)}
-      <ToggleGroup.Item class="size-8 p-0" value={String(i)}>
+      <ToggleGroup.Item value={String(i)}>
         {i}
       </ToggleGroup.Item>
     {/each}
