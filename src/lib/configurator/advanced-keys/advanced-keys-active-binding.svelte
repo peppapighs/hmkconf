@@ -63,7 +63,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
         return [action.tapKeycode, action.holdKeycode]
       case HMK_AKType.TOGGLE:
         return [action.keycode]
-      case HMK_AKType.STRING_MACRO:
+      case HMK_AKType.MACRO:
         return "String macro"
       default:
         return []

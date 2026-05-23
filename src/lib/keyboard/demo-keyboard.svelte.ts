@@ -29,7 +29,7 @@ import type {
   GetGamepadButtonsParams,
   GetGamepadOptionsParams,
   GetKeymapParams,
-  GetStringMacrosParams,
+  GetMacrosParams,
   GetTickRateParams,
   Keyboard,
   ResetProfileParams,
@@ -39,7 +39,7 @@ import type {
   SetGamepadOptionsParams,
   SetKeymapParams,
   SetOptionsParams,
-  SetStringMacrosParams,
+  SetMacrosParams,
   SetTickRateParams,
 } from "."
 import { demoMetadata } from "./metadata"
@@ -50,14 +50,14 @@ const {
   numKeys,
   numAdvancedKeys,
   defaultKeymaps,
-  stringMacroBufferSize,
+  macroBufferSize,
 } = demoMetadata
 
 type DemoKeyboardProfileState = {
   keymap: number[][]
   actuationMap: HMK_Actuation[]
   advancedKeys: HMK_AdvancedKey[]
-  stringMacros: number[]
+  macros: number[]
   gamepadButtons: number[]
   gamepadOptions: HMK_GamepadOptions
   tickRate: number
@@ -68,7 +68,7 @@ function defaultProfile(profile: number): DemoKeyboardProfileState {
     keymap: defaultKeymaps[profile],
     actuationMap: Array(numKeys).fill(defaultActuation),
     advancedKeys: Array(numAdvancedKeys).fill(defaultAdvancedKey),
-    stringMacros: Array(stringMacroBufferSize).fill(0),
+    macros: Array(macroBufferSize).fill(0),
     gamepadButtons: Array(numKeys).fill(HMK_GamepadButton.NONE),
     gamepadOptions: {
       analogCurve: analogCurvePresets[0].curve,
@@ -165,12 +165,12 @@ export class DemoKeyboard implements Keyboard {
       this.#state.profiles[profile].advancedKeys[offset + i] = data[i]
     }
   }
-  async getStringMacros({ profile }: GetStringMacrosParams) {
-    return this.#state.profiles[profile].stringMacros
+  async getMacros({ profile }: GetMacrosParams) {
+    return this.#state.profiles[profile].macros
   }
-  async setStringMacros({ profile, offset, data }: SetStringMacrosParams) {
+  async setMacros({ profile, offset, data }: SetMacrosParams) {
     for (let i = 0; i < data.length; i++) {
-      this.#state.profiles[profile].stringMacros[offset + i] = data[i]
+      this.#state.profiles[profile].macros[offset + i] = data[i]
     }
   }
   async getGamepadButtons(params: GetGamepadButtonsParams): Promise<number[]> {

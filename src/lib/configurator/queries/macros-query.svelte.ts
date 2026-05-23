@@ -13,28 +13,28 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { keyboardContext, type SetStringMacrosParams } from "$lib/keyboard"
+import { keyboardContext, type SetMacrosParams } from "$lib/keyboard"
 import { Context, resource, type ResourceReturn } from "runed"
 import { optimisticUpdate } from "."
 import { globalStateContext } from "../context.svelte"
 
-export class StringMacrosQuery {
-  stringMacros: ResourceReturn<number[]>
+export class MacrosQuery {
+  macros: ResourceReturn<number[]>
 
   #keyboard = keyboardContext.get()
   #profile = $derived(globalStateContext.get().profile)
 
   constructor() {
-    this.stringMacros = resource(
+    this.macros = resource(
       () => ({ profile: this.#profile }),
-      (p) => this.#keyboard.getStringMacros(p),
+      (p) => this.#keyboard.getMacros(p),
     )
   }
 
-  async set(params: Omit<SetStringMacrosParams, "profile">) {
+  async set(params: Omit<SetMacrosParams, "profile">) {
     const { offset, data } = params
     await optimisticUpdate({
-      resource: this.stringMacros,
+      resource: this.macros,
       optimisticFn: (current) => {
         const ret = [...current]
         for (let i = 0; i < data.length; i++) {
@@ -43,11 +43,11 @@ export class StringMacrosQuery {
         return ret
       },
       updateFn: () =>
-        this.#keyboard.setStringMacros({ ...params, profile: this.#profile }),
+        this.#keyboard.setMacros({ ...params, profile: this.#profile }),
     })
   }
 }
 
-export const stringMacrosQueryContext = new Context<StringMacrosQuery>(
-  "hmk-string-macros-query",
+export const macrosQueryContext = new Context<MacrosQuery>(
+  "hmk-macros-query",
 )

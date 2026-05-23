@@ -56,9 +56,9 @@ import {
 import { reboot } from "$lib/libhmk/commands/reboot"
 import { getSerial } from "$lib/libhmk/commands/serial"
 import {
-  getStringMacros,
-  setStringMacros,
-} from "$lib/libhmk/commands/string-macros"
+  getMacros,
+  setMacros,
+} from "$lib/libhmk/commands/macros"
 import { getTickRate, setTickRate } from "$lib/libhmk/commands/tick-rate"
 import { displayVersion, isWebHIDSSupported } from "$lib/utils"
 import type {
@@ -68,7 +68,7 @@ import type {
   GetGamepadButtonsParams,
   GetGamepadOptionsParams,
   GetKeymapParams,
-  GetStringMacrosParams,
+  GetMacrosParams,
   GetTickRateParams,
   Keyboard,
   ResetProfileParams,
@@ -79,7 +79,7 @@ import type {
   SetGamepadOptionsParams,
   SetKeymapParams,
   SetOptionsParams,
-  SetStringMacrosParams,
+  SetMacrosParams,
   SetTickRateParams,
 } from "."
 import { Commander } from "./commander"
@@ -184,11 +184,11 @@ class HMKKeyboard implements Keyboard {
   setAdvancedKeys(params: SetAdvancedKeysParams) {
     return setAdvancedKeys(this.version, this.commander, this.metadata, params)
   }
-  getStringMacros(params: GetStringMacrosParams) {
-    return getStringMacros(this.commander, this.metadata, params)
+  getMacros(params: GetMacrosParams) {
+    return getMacros(this.commander, this.metadata, params)
   }
-  setStringMacros(params: SetStringMacrosParams) {
-    return setStringMacros(this.commander, params)
+  setMacros(params: SetMacrosParams) {
+    return setMacros(this.commander, params)
   }
   getTickRate(params: GetTickRateParams) {
     return getTickRate(this.commander, params)

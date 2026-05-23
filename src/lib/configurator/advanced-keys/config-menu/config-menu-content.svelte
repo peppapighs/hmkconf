@@ -19,7 +19,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   import type { HTMLAttributes } from "svelte/elements"
   import DynamicKeystrokeConfigMenu from "./dynamic-keystroke/dynamic-keystroke-config-menu.svelte"
   import NullBindConfigMenu from "./null-bind/null-bind-config-menu.svelte"
-  import StringMacroConfigMenu from "./string-macro/string-macro-config-menu.svelte"
+  import MacroConfigMenu from "./macro/macro-config-menu.svelte"
   import TapHoldConfigMenu from "./tap-hold/tap-hold-config-menu.svelte"
   import ToggleConfigMenu from "./toggle/toggle-config-menu.svelte"
 
@@ -51,7 +51,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     <TapHoldConfigMenu />
   {:else if type === HMK_AKType.TOGGLE}
     <ToggleConfigMenu />
-  {:else if type === HMK_AKType.STRING_MACRO}
-    <StringMacroConfigMenu />
+  {:else if type === HMK_AKType.MACRO}
+    <MacroConfigMenu />
   {/if}
 </div>

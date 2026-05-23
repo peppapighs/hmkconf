@@ -16,35 +16,35 @@
 import { DataViewReader } from "$lib/data-view-reader"
 import { uint16ToUInt8s } from "$lib/integer"
 import type {
-  GetStringMacrosParams,
-  SetStringMacrosParams,
+  GetMacrosParams,
+  SetMacrosParams,
 } from "$lib/keyboard"
 import type { Commander } from "$lib/keyboard/commander"
 import type { KeyboardMetadata } from "$lib/keyboard/metadata"
 import { HMK_Command } from "."
 
-const GET_STRING_MACROS_MAX_BYTES = 62
-const SET_STRING_MACROS_MAX_BYTES = 59
+const GET_MACROS_MAX_BYTES = 62
+const SET_MACROS_MAX_BYTES = 59
 
-export async function getStringMacros(
+export async function getMacros(
   commander: Commander,
-  { stringMacroBufferSize }: KeyboardMetadata,
-  { profile }: GetStringMacrosParams,
+  { macroBufferSize }: KeyboardMetadata,
+  { profile }: GetMacrosParams,
 ) {
   const ret: number[] = []
   for (
     let offset = 0;
-    offset < stringMacroBufferSize;
-    offset += GET_STRING_MACROS_MAX_BYTES
+    offset < macroBufferSize;
+    offset += GET_MACROS_MAX_BYTES
   ) {
     const reader = new DataViewReader(
       await commander.sendCommand({
-        command: HMK_Command.GET_STRING_MACROS,
+        command: HMK_Command.GET_MACROS,
         payload: [profile, ...uint16ToUInt8s(offset)],
       }),
     )
     const len = reader.uint8()
-    for (let i = 0; i < len && ret.length < stringMacroBufferSize; i++) {
+    for (let i = 0; i < len && ret.length < macroBufferSize; i++) {
       ret.push(reader.uint8())
     }
   }
@@ -52,14 +52,14 @@ export async function getStringMacros(
   return ret
 }
 
-export async function setStringMacros(
+export async function setMacros(
   commander: Commander,
-  { profile, offset, data }: SetStringMacrosParams,
+  { profile, offset, data }: SetMacrosParams,
 ) {
-  for (let i = 0; i < data.length; i += SET_STRING_MACROS_MAX_BYTES) {
-    const part = data.slice(i, i + SET_STRING_MACROS_MAX_BYTES)
+  for (let i = 0; i < data.length; i += SET_MACROS_MAX_BYTES) {
+    const part = data.slice(i, i + SET_MACROS_MAX_BYTES)
     await commander.sendCommand({
-      command: HMK_Command.SET_STRING_MACROS,
+      command: HMK_Command.SET_MACROS,
       payload: [profile, ...uint16ToUInt8s(offset + i), part.length, ...part],
     })
   }

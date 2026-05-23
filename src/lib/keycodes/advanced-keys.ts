@@ -66,10 +66,10 @@ export const advancedKeysKeycodeMetadata: KeycodeMetadata[] = [
     category: "Advanced Keys",
   },
   {
-    name: "String Macro",
-    tooltip: "String Macro Key",
+    name: "Macro",
+    tooltip: "Macro Key",
     display: [ListVideoIcon],
-    keycode: Keycode.AK_STRING_MACRO,
+    keycode: Keycode.AK_MACRO,
     webCodes: [],
     category: "Advanced Keys",
   },

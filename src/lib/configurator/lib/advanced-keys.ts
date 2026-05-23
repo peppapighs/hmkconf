@@ -34,7 +34,7 @@ import {
   HMK_AKType,
   HMK_DKSAction,
   HMK_NullBindBehavior,
-  STRING_MACRO_NODE_NONE,
+  MACRO_NODE_NONE,
   type HMK_AdvancedKey,
 } from "$lib/libhmk/advanced-keys"
 import { Keycode } from "$lib/libhmk/keycodes"
@@ -87,13 +87,13 @@ export const advancedKeyMetadata: AdvancedKeyMetadata[] = [
     keycodes: [Keycode.AK_TOGGLE],
   },
   {
-    type: HMK_AKType.STRING_MACRO,
+    type: HMK_AKType.MACRO,
     icon: ListVideoIcon,
-    title: "String Macro",
+    title: "Macro",
     description:
       "Play a per-profile macro sequence with press, tap, release, and delay steps.",
     numKeys: 1,
-    keycodes: [Keycode.AK_STRING_MACRO],
+    keycodes: [Keycode.AK_MACRO],
   },
 ]
 
@@ -180,13 +180,13 @@ export function createAdvancedKey(
           tappingTerm: DEFAULT_TAPPING_TERM,
         },
       }
-    case HMK_AKType.STRING_MACRO:
+    case HMK_AKType.MACRO:
       return {
         layer,
         key: keys[0],
         action: {
           type,
-          firstNode: STRING_MACRO_NODE_NONE,
+          firstNode: MACRO_NODE_NONE,
         },
       }
     default:

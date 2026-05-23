@@ -25,7 +25,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   import AdvancedKeysActiveBinding from "./advanced-keys-active-binding.svelte"
 
   const advancedKeysState = advancedKeysStateContext.get()
-  const { numAdvancedKeys, stringMacroBufferSize } =
+  const { numAdvancedKeys, macroBufferSize } =
     keyboardContext.get().metadata
 
   const advancedKeysQuery = advancedKeysQueryContext.get()
@@ -40,7 +40,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   const visibleAdvancedKeyMetadata = $derived(
     advancedKeyMetadata.filter(
       ({ type }) =>
-        type !== HMK_AKType.STRING_MACRO || stringMacroBufferSize > 0,
+        type !== HMK_AKType.MACRO || macroBufferSize > 0,
     ),
   )
 </script>

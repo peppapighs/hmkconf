@@ -42,8 +42,8 @@ export type SetActuationMapParams = SetProfileArrayParams<HMK_Actuation>
 
 export type GetAdvancedKeysParams = GetProfileParams
 export type SetAdvancedKeysParams = SetProfileArrayParams<HMK_AdvancedKey>
-export type GetStringMacrosParams = GetProfileParams
-export type SetStringMacrosParams = SetProfileArrayParams<number>
+export type GetMacrosParams = GetProfileParams
+export type SetMacrosParams = SetProfileArrayParams<number>
 
 export type GetTickRateParams = GetProfileParams
 export type SetTickRateParams = SetProfileParams<number>
@@ -84,8 +84,8 @@ export type KeyboardAction = {
   setActuationMap(params: SetActuationMapParams): Promise<void>
   getAdvancedKeys(params: GetAdvancedKeysParams): Promise<HMK_AdvancedKey[]>
   setAdvancedKeys(params: SetAdvancedKeysParams): Promise<void>
-  getStringMacros(params: GetStringMacrosParams): Promise<number[]>
-  setStringMacros(params: SetStringMacrosParams): Promise<void>
+  getMacros(params: GetMacrosParams): Promise<number[]>
+  setMacros(params: SetMacrosParams): Promise<void>
   getTickRate(params: GetTickRateParams): Promise<number>
   setTickRate(params: SetTickRateParams): Promise<void>
   getGamepadButtons(params: GetGamepadButtonsParams): Promise<number[]>

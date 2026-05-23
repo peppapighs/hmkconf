@@ -21,14 +21,14 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   import { Button } from "$lib/components/ui/button"
   import { Input } from "$lib/components/ui/input"
   import { advancedKeysQueryContext } from "$lib/configurator/queries/advanced-keys-query.svelte"
-  import { stringMacrosQueryContext } from "$lib/configurator/queries/string-macros-query.svelte"
+  import { macrosQueryContext } from "$lib/configurator/queries/macros-query.svelte"
   import { keyboardContext } from "$lib/keyboard"
   import {
     HMK_AKType,
-    HMK_StringMacroAction,
-    STRING_MACRO_NODE_NONE,
-    type HMK_AKStringMacro,
-    type HMK_StringMacroStep,
+    HMK_MacroAction,
+    MACRO_NODE_NONE,
+    type HMK_AKMacro,
+    type HMK_MacroStep,
   } from "$lib/libhmk/advanced-keys"
   import { Keycode } from "$lib/libhmk/keycodes"
   import { unitToStyle } from "$lib/ui"
@@ -37,58 +37,58 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 
   const configMenuState = configMenuStateContext.get()
   const advancedKeysQuery = advancedKeysQueryContext.get()
-  const stringMacrosQuery = stringMacrosQueryContext.get()
+  const macrosQuery = macrosQueryContext.get()
   const keyboard = keyboardContext.get()
   const {
-    stringMacroBufferSize,
-    stringMacroNodeCount,
-    stringMacroNodeSize,
-    stringMacroDelayUnitMs,
+    macroBufferSize,
+    macroNodeCount,
+    macroNodeSize,
+    macroDelayUnitMs,
   } = keyboard.metadata
 
   const action = $derived(
-    configMenuState.advancedKey.action as HMK_AKStringMacro,
+    configMenuState.advancedKey.action as HMK_AKMacro,
   )
   const advancedKeys = $derived(advancedKeysQuery.advancedKeys.current)
-  const stringMacros = $derived(stringMacrosQuery.stringMacros.current)
+  const macros = $derived(macrosQuery.macros.current)
   let selectedStep = $state<string>("")
   let loadedKey = $state("")
-  let draftSteps = $state<HMK_StringMacroStep[]>([])
+  let draftSteps = $state<HMK_MacroStep[]>([])
 
   function getNodeOffset(node: number) {
-    return node * stringMacroNodeSize
+    return node * macroNodeSize
   }
 
   function readNodeNext(node: number) {
-    if (!stringMacros || node >= stringMacroNodeCount) {
-      return STRING_MACRO_NODE_NONE
+    if (!macros || node >= macroNodeCount) {
+      return MACRO_NODE_NONE
     }
 
     const offset = getNodeOffset(node)
-    if (offset + 4 >= stringMacros.length) {
-      return STRING_MACRO_NODE_NONE
+    if (offset + 4 >= macros.length) {
+      return MACRO_NODE_NONE
     }
 
-    return stringMacros[offset + 3] | (stringMacros[offset + 4] << 8)
+    return macros[offset + 3] | (macros[offset + 4] << 8)
   }
 
   function decodeSteps() {
-    if (!stringMacros || action.firstNode === STRING_MACRO_NODE_NONE) return []
+    if (!macros || action.firstNode === MACRO_NODE_NONE) return []
 
-    const ret: HMK_StringMacroStep[] = []
+    const ret: HMK_MacroStep[] = []
     let node = action.firstNode
     const visited = new Set<number>()
     while (
-      node !== STRING_MACRO_NODE_NONE &&
-      node < stringMacroNodeCount &&
+      node !== MACRO_NODE_NONE &&
+      node < macroNodeCount &&
       !visited.has(node)
     ) {
       visited.add(node)
       const offset = getNodeOffset(node)
       ret.push({
-        keycode: stringMacros[offset] ?? Keycode.KC_NO,
-        action: stringMacros[offset + 1] ?? HMK_StringMacroAction.TAP,
-        delay: stringMacros[offset + 2] ?? 1,
+        keycode: macros[offset] ?? Keycode.KC_NO,
+        action: macros[offset + 1] ?? HMK_MacroAction.TAP,
+        delay: macros[offset + 2] ?? 1,
       })
       node = readNodeNext(node)
     }
@@ -96,7 +96,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   }
 
   function encodeNode(
-    { keycode, action, delay }: HMK_StringMacroStep,
+    { keycode, action, delay }: HMK_MacroStep,
     next: number,
   ) {
     return [
@@ -122,7 +122,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   )
 
   $effect(() => {
-    if (!stringMacros) return
+    if (!macros) return
 
     const key = `${action.firstNode}:${savedSteps
       .map(({ keycode, action, delay }) => `${keycode}:${action}:${delay}`)
@@ -138,8 +138,8 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     let node = firstNode
     const visited = new Set<number>()
     while (
-      node !== STRING_MACRO_NODE_NONE &&
-      node < stringMacroNodeCount &&
+      node !== MACRO_NODE_NONE &&
+      node < macroNodeCount &&
       !visited.has(node)
     ) {
       visited.add(node)
@@ -148,16 +148,16 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     }
   }
 
-  function allocateMacro(steps: HMK_StringMacroStep[]) {
-    if (!advancedKeys || !stringMacros) return null
+  function allocateMacro(steps: HMK_MacroStep[]) {
+    if (!advancedKeys || !macros) return null
     if (steps.length === 0) return []
 
-    const used = Array(stringMacroNodeCount).fill(false)
+    const used = Array(macroNodeCount).fill(false)
     for (const [i, advancedKey] of advancedKeys.entries()) {
       if (i === configMenuState.index) continue
 
       const otherAction = advancedKey.action
-      if (otherAction.type !== HMK_AKType.STRING_MACRO) continue
+      if (otherAction.type !== HMK_AKType.MACRO) continue
       markReachableNodes(otherAction.firstNode, used)
     }
 
@@ -170,27 +170,27 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   }
 
   async function commitDraftSteps() {
-    if (!stringMacros) return
+    if (!macros) return
 
     const nodes = draftNodes
     if (nodes === null) return
 
     if (draftSteps.length > 0) {
-      const data = [...stringMacros]
+      const data = [...macros]
       for (let i = 0; i < draftSteps.length; i++) {
         const node = nodes[i]
-        const next = nodes[i + 1] ?? STRING_MACRO_NODE_NONE
+        const next = nodes[i + 1] ?? MACRO_NODE_NONE
         const offset = getNodeOffset(node)
-        data.splice(offset, stringMacroNodeSize, ...encodeNode(draftSteps[i], next))
+        data.splice(offset, macroNodeSize, ...encodeNode(draftSteps[i], next))
       }
-      await stringMacrosQuery.set({
+      await macrosQuery.set({
         offset: 0,
-        data: data.slice(0, stringMacroBufferSize),
+        data: data.slice(0, macroBufferSize),
       })
     }
     await configMenuState.updateAction({
-      type: HMK_AKType.STRING_MACRO,
-      firstNode: nodes[0] ?? STRING_MACRO_NODE_NONE,
+      type: HMK_AKType.MACRO,
+      firstNode: nodes[0] ?? MACRO_NODE_NONE,
     })
   }
 
@@ -211,7 +211,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     configMenuState.setCanSave(!hasStorageError)
   })
 
-  function updateStep(index: number, patch: Partial<HMK_StringMacroStep>) {
+  function updateStep(index: number, patch: Partial<HMK_MacroStep>) {
     draftSteps = draftSteps.map((step, i) =>
       i === index ? { ...step, ...patch } : step,
     )
@@ -226,7 +226,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
       ...draftSteps,
       {
         keycode,
-        action: HMK_StringMacroAction.TAP,
+        action: HMK_MacroAction.TAP,
         delay: 1,
       },
     ]
@@ -243,20 +243,20 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   }
 
   function delayUnitsToMs(delay: number) {
-    return delay * stringMacroDelayUnitMs
+    return delay * macroDelayUnitMs
   }
 
   function delayMsToUnits(delayMs: number) {
     return Math.max(
       0,
-      Math.min(255, Math.round(delayMs / stringMacroDelayUnitMs)),
+      Math.min(255, Math.round(delayMs / macroDelayUnitMs)),
     )
   }
 </script>
 
 <FixedScrollArea class="flex flex-col gap-4 p-4 pt-0">
   <div class="grid text-sm">
-    <span class="font-medium">Configure String Macro Bindings</span>
+    <span class="font-medium">Configure Macro Bindings</span>
     <span class="text-muted-foreground">
       Assign macro steps using the menu on the right. Click a keycode in the
       macro to edit it, then press Done to save. Delay values are in
@@ -314,14 +314,14 @@ this program. If not, see <https://www.gnu.org/licenses/>.
               action: Number(e.currentTarget.value),
             })}
         >
-          <option value={HMK_StringMacroAction.PRESS}>Press</option>
-          <option value={HMK_StringMacroAction.TAP}>Tap</option>
-          <option value={HMK_StringMacroAction.RELEASE}>Release</option>
+          <option value={HMK_MacroAction.PRESS}>Press</option>
+          <option value={HMK_MacroAction.TAP}>Tap</option>
+          <option value={HMK_MacroAction.RELEASE}>Release</option>
         </select>
         <Input
-          max={String(255 * stringMacroDelayUnitMs)}
+          max={String(255 * macroDelayUnitMs)}
           min="0"
-          step={String(stringMacroDelayUnitMs)}
+          step={String(macroDelayUnitMs)}
           type="number"
           value={delayUnitsToMs(step.delay)}
           oninput={(e) =>

@@ -29,7 +29,7 @@ export enum HMK_AKType {
   DYNAMIC_KEYSTROKE,
   TAP_HOLD,
   TOGGLE,
-  STRING_MACRO,
+  MACRO,
 }
 
 export const hmkAKNoneSchema = z.object({
@@ -99,29 +99,29 @@ export const hmkAKToggleSchema = z.object({
 
 export type HMK_AKToggle = z.infer<typeof hmkAKToggleSchema>
 
-export enum HMK_StringMacroAction {
+export enum HMK_MacroAction {
   NONE = 0,
   PRESS,
   TAP,
   RELEASE,
 }
 
-export const STRING_MACRO_NODE_NONE = 0xffff
+export const MACRO_NODE_NONE = 0xffff
 
-export const hmkStringMacroStepSchema = z.object({
+export const hmkMacroStepSchema = z.object({
   keycode: uint8Schema,
-  action: z.enum(HMK_StringMacroAction),
+  action: z.enum(HMK_MacroAction),
   delay: uint8Schema,
 })
 
-export type HMK_StringMacroStep = z.infer<typeof hmkStringMacroStepSchema>
+export type HMK_MacroStep = z.infer<typeof hmkMacroStepSchema>
 
-export const hmkAKStringMacroSchema = z.object({
-  type: z.literal(HMK_AKType.STRING_MACRO),
+export const hmkAKMacroSchema = z.object({
+  type: z.literal(HMK_AKType.MACRO),
   firstNode: uint16Schema,
 })
 
-export type HMK_AKStringMacro = z.infer<typeof hmkAKStringMacroSchema>
+export type HMK_AKMacro = z.infer<typeof hmkAKMacroSchema>
 
 export const hmkAdvancedKeySchema = z.object({
   layer: uint8Schema.max(HMK_MAX_NUM_LAYERS - 1),
@@ -132,7 +132,7 @@ export const hmkAdvancedKeySchema = z.object({
     hmkAKDynamicKeystrokeSchema,
     hmkAKTapHoldSchema,
     hmkAKToggleSchema,
-    hmkAKStringMacroSchema,
+    hmkAKMacroSchema,
   ]),
 })
 
