@@ -106,19 +106,19 @@ export enum HMK_MacroAction {
   RELEASE,
 }
 
-export const MACRO_NODE_NONE = 0xffff
+export const MACRO_NODE_NONE = 0xff
 
 export const hmkMacroStepSchema = z.object({
   keycode: uint8Schema,
   action: z.enum(HMK_MacroAction),
-  delay: uint8Schema,
+  delay: uint16Schema.max(0x1fff),
 })
 
 export type HMK_MacroStep = z.infer<typeof hmkMacroStepSchema>
 
 export const hmkAKMacroSchema = z.object({
   type: z.literal(HMK_AKType.MACRO),
-  firstNode: uint16Schema,
+  head: uint8Schema,
 })
 
 export type HMK_AKMacro = z.infer<typeof hmkAKMacroSchema>

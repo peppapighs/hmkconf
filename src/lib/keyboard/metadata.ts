@@ -109,10 +109,7 @@ export const keyboardMetadataSchema = z
       .min(1)
       .max(HMK_MAX_NUM_ADVANCED_KEYS)
       .default(4),
-    macroBufferSize: z.int().min(0).max(4096).default(0),
-    macroNodeSize: z.literal(5).default(5),
-    macroNodeCount: z.int().min(0).max(819).optional(),
-    macroDelayUnitMs: z.int().min(1).max(255).default(10),
+    numMacroNodes: z.int().min(0).max(255).default(0),
 
     layout: keyboardLayoutSchema,
     defaultKeymap: z.array(z.array(keycodeSchema)).optional(),
@@ -167,11 +164,19 @@ export const keyboardMetadataSchema = z
       })
     }
 
-    const macroNodeCount =
-      val.macroNodeCount ??
-      Math.floor(val.macroBufferSize / val.macroNodeSize)
+    const macroNodeCount = val.numMacroNodes
+    const macroNodeSize = 4
+    const macroBufferSize = macroNodeCount * macroNodeSize
+    const macroDelayUnitMs = 1
 
-    return { ...val, defaultKeymaps, macroNodeCount }
+    return {
+      ...val,
+      defaultKeymaps,
+      macroBufferSize,
+      macroNodeSize,
+      macroNodeCount,
+      macroDelayUnitMs,
+    }
   })
 
 export type KeyboardMetadata = z.infer<typeof keyboardMetadataSchema>
@@ -188,10 +193,7 @@ export const demoMetadata = keyboardMetadataSchema.parse({
   numKeys: 69,
   numAdvancedKeys: 32,
   numDynamicKeystrokeMaxBindings: 4,
-  macroBufferSize: 510,
-  macroNodeSize: 5,
-  macroNodeCount: 102,
-  macroDelayUnitMs: 10,
+  numMacroNodes: 128,
 
   layout: {
     labels: [

@@ -186,7 +186,7 @@ export function createAdvancedKey(
         key: keys[0],
         action: {
           type,
-          firstNode: MACRO_NODE_NONE,
+          head: MACRO_NODE_NONE,
         },
       }
     default:

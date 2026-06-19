@@ -39,7 +39,7 @@ function getAdvancedKeySize(
         numDynamicKeystrokeMaxBindings * 2 + 1, // Dynamic Keystroke
         5, // Tap-Hold
         3, // Toggle
-        2, // Macro
+        1, // Macro
       )
     )
   }
@@ -150,7 +150,7 @@ export async function getAdvancedKeys(
           key,
           action: {
             type,
-            firstNode: reader.uint16(),
+            head: reader.uint8(),
           },
         })
         break
@@ -204,7 +204,7 @@ export async function setAdvancedKeys(
         current.push(action.keycode, ...uint16ToUInt8s(action.tappingTerm))
         break
       case HMK_AKType.MACRO:
-        current.push(...uint16ToUInt8s(action.firstNode))
+        current.push(action.head)
         break
       case HMK_AKType.NONE:
       default:

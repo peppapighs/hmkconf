@@ -65,18 +65,18 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     }
 
     const offset = getNodeOffset(node)
-    if (offset + 4 >= macros.length) {
+    if (offset + 3 >= macros.length) {
       return MACRO_NODE_NONE
     }
 
-    return macros[offset + 3] | (macros[offset + 4] << 8)
+    return macros[offset + 3]
   }
 
   function decodeSteps() {
-    if (!macros || action.firstNode === MACRO_NODE_NONE) return []
+    if (!macros || action.head === MACRO_NODE_NONE) return []
 
     const ret: HMK_MacroStep[] = []
-    let node = action.firstNode
+    let node = action.head
     const visited = new Set<number>()
     while (
       node !== MACRO_NODE_NONE &&
@@ -85,10 +85,12 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     ) {
       visited.add(node)
       const offset = getNodeOffset(node)
+      const actionDelay = (macros[offset + 1] ?? HMK_MacroAction.TAP) |
+        ((macros[offset + 2] ?? 0) << 8)
       ret.push({
         keycode: macros[offset] ?? Keycode.KC_NO,
-        action: macros[offset + 1] ?? HMK_MacroAction.TAP,
-        delay: macros[offset + 2] ?? 1,
+        action: actionDelay & 7,
+        delay: actionDelay >> 3,
       })
       node = readNodeNext(node)
     }
@@ -99,12 +101,12 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     { keycode, action, delay }: HMK_MacroStep,
     next: number,
   ) {
+    const actionDelay = action | (delay << 3)
     return [
       keycode,
-      action,
-      delay,
-      next & 0xff,
-      (next >> 8) & 0xff,
+      actionDelay & 0xff,
+      (actionDelay >> 8) & 0xff,
+      next,
     ]
   }
 
@@ -124,7 +126,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   $effect(() => {
     if (!macros) return
 
-    const key = `${action.firstNode}:${savedSteps
+    const key = `${action.head}:${savedSteps
       .map(({ keycode, action, delay }) => `${keycode}:${action}:${delay}`)
       .join(",")}`
     if (key === loadedKey) return
@@ -134,8 +136,8 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     loadedKey = key
   })
 
-  function markReachableNodes(firstNode: number, used: boolean[]) {
-    let node = firstNode
+  function markReachableNodes(head: number, used: boolean[]) {
+    let node = head
     const visited = new Set<number>()
     while (
       node !== MACRO_NODE_NONE &&
@@ -158,7 +160,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 
       const otherAction = advancedKey.action
       if (otherAction.type !== HMK_AKType.MACRO) continue
-      markReachableNodes(otherAction.firstNode, used)
+      markReachableNodes(otherAction.head, used)
     }
 
     const nodes: number[] = []
@@ -190,7 +192,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     }
     await configMenuState.updateAction({
       type: HMK_AKType.MACRO,
-      firstNode: nodes[0] ?? MACRO_NODE_NONE,
+      head: nodes[0] ?? MACRO_NODE_NONE,
     })
   }
 
@@ -249,7 +251,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   function delayMsToUnits(delayMs: number) {
     return Math.max(
       0,
-      Math.min(255, Math.round(delayMs / macroDelayUnitMs)),
+      Math.min(0x1fff, Math.round(delayMs / macroDelayUnitMs)),
     )
   }
 </script>
@@ -319,7 +321,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
           <option value={HMK_MacroAction.RELEASE}>Release</option>
         </select>
         <Input
-          max={String(255 * macroDelayUnitMs)}
+          max={String(0x1fff * macroDelayUnitMs)}
           min="0"
           step={String(macroDelayUnitMs)}
           type="number"
