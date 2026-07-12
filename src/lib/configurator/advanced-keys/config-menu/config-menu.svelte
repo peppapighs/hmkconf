@@ -18,20 +18,22 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   import { advancedKeysStateContext } from "$lib/configurator/context.svelte"
   import { getAdvancedKeyMetadata } from "$lib/configurator/lib/advanced-keys"
   import { advancedKeysQueryContext } from "$lib/configurator/queries/advanced-keys-query.svelte"
+  import { macrosQueryContext } from "$lib/configurator/queries/macros-query.svelte"
+  import { keyboardContext } from "$lib/keyboard"
   import AdvancedKeysDeleteDialog from "../advanced-keys-delete-dialog.svelte"
   import ConfigMenuContent from "./config-menu-content.svelte"
 
+  const { version } = keyboardContext.get()
   const advancedKeysState = advancedKeysStateContext.get()
   const { index } = $derived(advancedKeysState)
 
   const { current: advancedKeys } = $derived(
     advancedKeysQueryContext.get().advancedKeys,
   )
-
-  const advancedKey = $derived(advancedKeys?.[index!])
+  const { current: macros } = $derived(macrosQueryContext.get().macros)
 </script>
 
-{#if !advancedKey}
+{#if !advancedKeys || !macros}
   <div class="grid size-full place-items-center p-6 text-center">
     <p class="animate-pulse text-2xl font-semibold text-muted-foreground">
       Loading...
@@ -41,10 +43,14 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   <div class="flex size-full flex-col">
     <div class="flex items-center justify-between gap-4 p-4">
       <div class="font-semibold">
-        {getAdvancedKeyMetadata(advancedKey.action.type).title}
+        {getAdvancedKeyMetadata(version, advancedKeys[index!].action.type)
+          .title}
       </div>
       <div class="flex items-center gap-2">
-        <AdvancedKeysDeleteDialog index={index!} {advancedKey}>
+        <AdvancedKeysDeleteDialog
+          index={index!}
+          advancedKey={advancedKeys[index!]}
+        >
           {#snippet child({ props })}
             <Button size="sm" variant="destructive" {...props}>Delete</Button>
           {/snippet}
@@ -54,6 +60,6 @@ this program. If not, see <https://www.gnu.org/licenses/>.
         </Button>
       </div>
     </div>
-    <ConfigMenuContent index={index!} {advancedKey} />
+    <ConfigMenuContent index={index!} {advancedKeys} {macros} />
   </div>
 {/if}

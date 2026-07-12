@@ -33,7 +33,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   <div class="grid text-sm">
     <span class="font-medium">Configure DKS Bindings</span>
     <span class="text-muted-foreground">
-      Assign bindings using the menu on the left. For a tap action, click the
+      Assign bindings using the menu on the right. For a tap action, click the
       plus icon once. For a hold action, click the plus icon and drag it to the
       desired key position based on your preferred behavior.
     </span>

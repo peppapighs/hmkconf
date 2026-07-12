@@ -14,7 +14,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 -->
 
 <script lang="ts">
-  import { EditIcon, TrashIcon } from "@lucide/svelte"
+  import { SquarePenIcon, TrashIcon } from "@lucide/svelte"
   import * as KeycodeButton from "$lib/components/keycode-button"
   import { Button } from "$lib/components/ui/button"
   import { HMK_AKType, type HMK_AdvancedKey } from "$lib/libhmk/advanced-keys"
@@ -25,9 +25,11 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   import { advancedKeysStateContext } from "../context.svelte"
   import {
     getAdvancedKeyMetadata,
+    getMacroSequence,
     getNullBindBehaviorMetadata,
   } from "../lib/advanced-keys"
   import { keymapQueryContext } from "../queries/keymap-query.svelte"
+  import { macrosQueryContext } from "../queries/macros-query.svelte"
   import AdvancedKeysDeleteDialog from "./advanced-keys-delete-dialog.svelte"
 
   const {
@@ -43,6 +45,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   const advancedKeysState = advancedKeysStateContext.get()
 
   const { current: keymap } = $derived(keymapQueryContext.get().keymap)
+  const { current: macros } = $derived(macrosQueryContext.get().macros)
 
   const { layer, key, action } = $derived(advancedKey)
   const { icon: Icon } = $derived(getAdvancedKeyMetadata(action.type))
@@ -63,6 +66,12 @@ this program. If not, see <https://www.gnu.org/licenses/>.
         return [action.tapKeycode, action.holdKeycode]
       case HMK_AKType.TOGGLE:
         return [action.keycode]
+      case HMK_AKType.MACRO:
+        return macros === undefined
+          ? []
+          : getMacroSequence(macros, action.head).map(
+              (id) => macros[id].keycode,
+            )
       default:
         return []
     }
@@ -91,7 +100,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
       </div>
     {/each}
   </div>
-  <div class="flex flex-1 gap-2 overflow-hidden p-2">
+  <div class="flex flex-1 gap-2 overflow-x-auto p-2">
     <div class="grid aspect-square place-items-center">
       <Icon class="size-6" />
     </div>
@@ -122,7 +131,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
       size="icon"
       variant="outline"
     >
-      <EditIcon />
+      <SquarePenIcon />
       <span class="sr-only">Edit</span>
     </Button>
     <AdvancedKeysDeleteDialog {index} {advancedKey}>

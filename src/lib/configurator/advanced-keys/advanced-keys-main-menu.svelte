@@ -19,13 +19,17 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   import * as Empty from "$lib/components/ui/empty"
   import { keyboardContext } from "$lib/keyboard"
   import { HMK_AKType } from "$lib/libhmk/advanced-keys"
+  import { isFeatureAvailable } from "$lib/utils"
   import { advancedKeysStateContext } from "../context.svelte"
   import { advancedKeyMetadata } from "../lib/advanced-keys"
   import { advancedKeysQueryContext } from "../queries/advanced-keys-query.svelte"
   import AdvancedKeysActiveBinding from "./advanced-keys-active-binding.svelte"
 
   const advancedKeysState = advancedKeysStateContext.get()
-  const { numAdvancedKeys } = keyboardContext.get().metadata
+  const {
+    metadata: { numAdvancedKeys },
+    version,
+  } = keyboardContext.get()
 
   const advancedKeysQuery = advancedKeysQueryContext.get()
   const { current: advancedKeys } = $derived(advancedKeysQuery.advancedKeys)
@@ -42,21 +46,23 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   <FixedScrollArea class="flex flex-col gap-4 p-4">
     <div class="font-semibold">Add Advanced Key</div>
     <div class="flex flex-col gap-2">
-      {#each advancedKeyMetadata as { type, icon: Icon, title, description } (type)}
-        <Button
-          class="size-full gap-4 px-4 py-2"
-          onclick={() => advancedKeysState.createOpen(type)}
-          size="lg"
-          variant="outline"
-        >
-          <Icon class="size-6" />
-          <div class="grid text-left text-sm text-wrap">
-            <span class="font-medium">{title}</span>
-            <span class="font-normal text-muted-foreground">
-              {description}
-            </span>
-          </div>
-        </Button>
+      {#each advancedKeyMetadata as { type, icon: Icon, title, description, feature } (type)}
+        {#if feature === undefined || isFeatureAvailable(feature, version)}
+          <Button
+            class="size-full gap-4 px-4 py-2"
+            onclick={() => advancedKeysState.createOpen(type)}
+            size="lg"
+            variant="outline"
+          >
+            <Icon class="size-6" />
+            <div class="grid text-left text-sm text-wrap">
+              <span class="font-medium">{title}</span>
+              <span class="font-normal text-muted-foreground">
+                {description}
+              </span>
+            </div>
+          </Button>
+        {/if}
       {/each}
     </div>
   </FixedScrollArea>

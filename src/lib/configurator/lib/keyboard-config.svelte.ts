@@ -23,6 +23,7 @@ import { actuationQueryContext } from "../queries/actuation-query.svelte"
 import { advancedKeysQueryContext } from "../queries/advanced-keys-query.svelte"
 import { gamepadQueryContext } from "../queries/gamepad-query.svelte"
 import { keymapQueryContext } from "../queries/keymap-query.svelte"
+import { macrosQueryContext } from "../queries/macros-query.svelte"
 import { tickRateQueryContext } from "../queries/tick-rate-query.svelte"
 
 export class KeyboardConfig {
@@ -34,11 +35,12 @@ export class KeyboardConfig {
       numLayers,
       numKeys,
       numAdvancedKeys,
+      numMacroNodes,
       numDynamicKeystrokeMaxBindings,
     } = this.#keyboard.metadata
     const {
       metadata,
-      profile: { keymap, actuationMap, advancedKeys, gamepadButtons },
+      profile: { keymap, actuationMap, advancedKeys, macros, gamepadButtons },
     } = val
 
     if (metadata.version > HMK_FIRMWARE_MAX_VERSION) {
@@ -101,6 +103,13 @@ export class KeyboardConfig {
       }
     }
 
+    if (macros !== undefined && macros.length !== numMacroNodes) {
+      ctx.addIssue({
+        code: "custom",
+        message: `Expected macros to have exactly ${numMacroNodes} entries.`,
+      })
+    }
+
     if (gamepadButtons !== undefined && gamepadButtons.length !== numKeys) {
       ctx.addIssue({
         code: "custom",
@@ -113,6 +122,7 @@ export class KeyboardConfig {
   #keymapQuery = keymapQueryContext.get()
   #actuationQuery = actuationQueryContext.get()
   #advancedKeysQuery = advancedKeysQueryContext.get()
+  #macrosQuery = macrosQueryContext.get()
   #gamepadQuery = gamepadQueryContext.get()
   #tickRateQuery = tickRateQueryContext.get()
 
@@ -127,6 +137,7 @@ export class KeyboardConfig {
         keymap: await this.#keyboard.getKeymap({ profile }),
         actuationMap: await this.#keyboard.getActuationMap({ profile }),
         advancedKeys: await this.#keyboard.getAdvancedKeys({ profile }),
+        macros: await this.#keyboard.getMacros({ profile }),
         gamepadButtons: await this.#keyboard.getGamepadButtons({ profile }),
         gamepadOptions: await this.#keyboard.getGamepadOptions({ profile }),
         tickRate: await this.#keyboard.getTickRate({ profile }),
@@ -140,6 +151,7 @@ export class KeyboardConfig {
         keymap,
         actuationMap,
         advancedKeys,
+        macros,
         gamepadButtons,
         gamepadOptions,
         tickRate,
@@ -177,6 +189,11 @@ export class KeyboardConfig {
         data: advancedKeys,
       })
       if (shouldRefetch) this.#advancedKeysQuery.advancedKeys.refetch()
+    }
+
+    if (macros !== undefined) {
+      await this.#keyboard.setMacros({ profile, offset: 0, data: macros })
+      if (shouldRefetch) this.#macrosQuery.macros.refetch()
     }
 
     if (gamepadButtons !== undefined) {

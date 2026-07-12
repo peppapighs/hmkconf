@@ -18,6 +18,7 @@ import {
   HMK_MAX_NUM_ADVANCED_KEYS,
   HMK_MAX_NUM_KEYS,
   HMK_MAX_NUM_LAYERS,
+  HMK_MAX_NUM_MACRO_NODES,
   HMK_MAX_NUM_PROFILES,
 } from "$lib/libhmk"
 import z from "zod"
@@ -109,6 +110,7 @@ export const keyboardMetadataSchema = z
       .min(1)
       .max(HMK_MAX_NUM_ADVANCED_KEYS)
       .default(4),
+    numMacroNodes: z.int().min(1).max(HMK_MAX_NUM_MACRO_NODES).default(128),
 
     layout: keyboardLayoutSchema,
     defaultKeymap: z.array(z.array(keycodeSchema)).optional(),
@@ -180,6 +182,7 @@ export const demoMetadata = keyboardMetadataSchema.parse({
   numKeys: 69,
   numAdvancedKeys: 32,
   numDynamicKeystrokeMaxBindings: 4,
+  numMacroNodes: 128,
 
   layout: {
     labels: [

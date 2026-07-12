@@ -23,9 +23,11 @@ import {
   LayoutTemplateIcon,
   MoveHorizontalIcon,
   ToggleLeftIcon,
+  WorkflowIcon,
 } from "@lucide/svelte"
 import { displayUInt8 } from "$lib/integer"
 import type { KeyboardMetadata } from "$lib/keyboard/metadata"
+import type { Feature } from "$lib/libhmk"
 import {
   DEFAULT_BOTTOM_OUT_POINT,
   DEFAULT_TAPPING_TERM,
@@ -36,6 +38,11 @@ import {
   type HMK_AdvancedKey,
 } from "$lib/libhmk/advanced-keys"
 import { Keycode } from "$lib/libhmk/keycodes"
+import {
+  HMK_MACRO_NODE_NONE,
+  HMK_MacroAction,
+  type HMK_MacroNode,
+} from "$lib/libhmk/macro"
 import type { Component } from "svelte"
 
 export type AdvancedKeyMetadata = {
@@ -45,6 +52,7 @@ export type AdvancedKeyMetadata = {
   description: string
   numKeys: number
   keycodes: Keycode[]
+  feature?: Feature
 }
 
 export const advancedKeyMetadata: AdvancedKeyMetadata[] = [
@@ -83,6 +91,16 @@ export const advancedKeyMetadata: AdvancedKeyMetadata[] = [
       "Toggle between key press and release states. Hold the key for a normal key behavior.",
     numKeys: 1,
     keycodes: [Keycode.AK_TOGGLE],
+  },
+  {
+    type: HMK_AKType.MACRO,
+    icon: WorkflowIcon,
+    title: "Macro",
+    description:
+      "Run a sequence of configurable actions when the key is pressed.",
+    numKeys: 1,
+    keycodes: [Keycode.AK_MACRO],
+    feature: "advancedKeyMacro",
   },
 ]
 
@@ -167,6 +185,15 @@ export function createAdvancedKey(
           type,
           keycode: keycodes[0],
           tappingTerm: DEFAULT_TAPPING_TERM,
+        },
+      }
+    case HMK_AKType.MACRO:
+      return {
+        layer,
+        key: keys[0],
+        action: {
+          type,
+          head: HMK_MACRO_NODE_NONE,
         },
       }
     default:
@@ -282,4 +309,49 @@ export function getDKSIntervalWidth([l, r]: [number, number]) {
   return l === r
     ? DKS_ACTION_SIZE
     : (r - l) * DKS_BIT_COLUMN_WIDTH - DKS_ROW_PADDING
+}
+
+export const macroActions = {
+  Tap: HMK_MacroAction.TAP,
+  Press: HMK_MacroAction.PRESS,
+  Release: HMK_MacroAction.RELEASE,
+} as const
+
+export function getMacroSequence(macros: HMK_MacroNode[], head: number) {
+  const visited = Array(macros.length).fill(false)
+  const acc: number[] = []
+  while (
+    head < macros.length &&
+    head !== HMK_MACRO_NODE_NONE &&
+    !visited[head]
+  ) {
+    acc.push(head)
+    visited[head] = true
+    head = macros[head].next
+  }
+
+  return acc
+}
+
+export function findEmptyMacroNode(
+  macros: HMK_MacroNode[],
+  advancedKeys: HMK_AdvancedKey[],
+) {
+  const visited = Array(macros.length).fill(false)
+  for (const { action } of advancedKeys) {
+    if (action.type !== HMK_AKType.MACRO) continue
+
+    let head = action.head
+    while (
+      head < macros.length &&
+      head !== HMK_MACRO_NODE_NONE &&
+      !visited[head]
+    ) {
+      visited[head] = true
+      head = macros[head].next
+    }
+  }
+
+  const i = visited.findIndex((v) => !v)
+  return i === -1 ? null : i
 }

@@ -23,7 +23,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   const keyButtonVariants = tv({
     base: cn(
       toggleVariants({ variant: "outline" }),
-      "size-full flex-col gap-0 p-0 text-[length:inherit] leading-[1em] whitespace-pre-wrap [&_svg:not([class*='size-'])]:size-[1em]",
+      "size-full flex-col gap-0 p-0 text-[length:inherit] leading-[1em] whitespace-pre-wrap data-[state=on]:bg-muted [&_svg:not([class*='size-'])]:size-[1em]",
     ),
     variants: {
       size: {

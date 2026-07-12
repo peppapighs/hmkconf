@@ -39,6 +39,7 @@ function getAdvancedKeySize(
         numDynamicKeystrokeMaxBindings * 2 + 1, // Dynamic Keystroke
         5, // Tap-Hold
         3, // Toggle
+        isFeatureAvailable("advancedKeyMacro", firmwareVersion) ? 1 : 0, // Macro
       )
     )
   }
@@ -68,7 +69,7 @@ export async function getAdvancedKeys(
       buffer.set(new Uint8Array(view.buffer, 0, numBytes), i * advancedKeySize)
     }
   } else {
-    for (let i = 0; i < totalBytes; ) {
+    for (let i = 0; i < totalBytes;) {
       const view = await commander.sendCommand({
         command: HMK_Command.GET_ADVANCED_KEYS,
         payload: [profile, i & 0xff, (i >> 8) & 0xff],
@@ -143,6 +144,16 @@ export async function getAdvancedKeys(
           },
         })
         break
+      case HMK_AKType.MACRO:
+        ret.push({
+          layer,
+          key,
+          action: {
+            type,
+            head: reader.uint8(),
+          },
+        })
+        break
       case HMK_AKType.NONE:
       default:
         ret.push({ layer, key, action: { type } })
@@ -191,6 +202,9 @@ export async function setAdvancedKeys(
         break
       case HMK_AKType.TOGGLE:
         current.push(action.keycode, ...uint16ToUInt8s(action.tappingTerm))
+        break
+      case HMK_AKType.MACRO:
+        current.push(action.head)
         break
       case HMK_AKType.NONE:
       default:

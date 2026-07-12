@@ -22,6 +22,7 @@ export const featureVersionMap = {
   pollingRateSwitch: 0x0105,
   saveCalibrationThreshold: 0x0107,
   numDynamicKeystrokeMaxBindings: 0x0108,
+  advancedKeyMacro: 0x0108,
 } as const
 export type Feature = keyof typeof featureVersionMap
 
@@ -33,6 +34,7 @@ export const HMK_MAX_NUM_LAYERS = 8
 export const HMK_MAX_NUM_KEYS = 256
 export const HMK_MAX_NUM_ADVANCED_KEYS = 64
 export const HMK_MAX_NUM_DYNAMIC_KEYSTROKE_MAX_BINDINGS = 64
+export const HMK_MAX_NUM_MACRO_NODES = 255
 
 export const HMK_MIN_DISTANCE = 4
 export const HMK_MAX_DISTANCE = 255

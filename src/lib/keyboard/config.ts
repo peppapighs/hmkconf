@@ -17,6 +17,7 @@ import { uint8Schema, uint16Schema } from "$lib/integer"
 import { hmkActuationSchema } from "$lib/libhmk/actuation"
 import { hmkAdvancedKeySchema } from "$lib/libhmk/advanced-keys"
 import { hmkGamepadOptionsSchema } from "$lib/libhmk/gamepad"
+import { hmkMacroNodeSchema } from "$lib/libhmk/macro"
 import z from "zod"
 
 const ignoreOnError = <T>(schema: z.ZodType<T>) =>
@@ -38,6 +39,7 @@ export const keyboardConfigSchema = z.object({
     keymap: ignoreOnError(z.array(z.array(uint8Schema))),
     actuationMap: ignoreOnError(z.array(hmkActuationSchema)),
     advancedKeys: ignoreOnError(z.array(hmkAdvancedKeySchema)),
+    macros: ignoreOnError(z.array(hmkMacroNodeSchema)),
     gamepadButtons: ignoreOnError(z.array(uint8Schema)),
     gamepadOptions: ignoreOnError(hmkGamepadOptionsSchema),
     tickRate: ignoreOnError(uint8Schema),

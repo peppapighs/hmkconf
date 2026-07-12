@@ -15,27 +15,33 @@
 
 import { advancedKeysQueryContext } from "$lib/configurator/queries/advanced-keys-query.svelte"
 import type { HMK_AdvancedKey } from "$lib/libhmk/advanced-keys"
+import type { HMK_MacroNode } from "$lib/libhmk/macro"
 import { Context } from "runed"
 
 export type ConfigMenuStateProps = {
   index: number
-  advancedKey: HMK_AdvancedKey
+  advancedKeys: HMK_AdvancedKey[]
+  macros: HMK_MacroNode[]
 }
 
 export class ConfigMenuState {
   advancedKey: HMK_AdvancedKey
+  advancedKeys: HMK_AdvancedKey[]
+  macros: HMK_MacroNode[]
 
   #index: number
   #advancedKeysQuery = advancedKeysQueryContext.get()
 
   constructor(props: () => ConfigMenuStateProps) {
-    const { index, advancedKey } = $derived(props())
+    const { index, advancedKeys, macros } = $derived(props())
     this.#index = $derived(index)
-    this.advancedKey = $derived(advancedKey)
+    this.advancedKey = $derived(advancedKeys[index])
+    this.advancedKeys = $derived(advancedKeys)
+    this.macros = $derived(macros)
   }
 
   updateAction(action: HMK_AdvancedKey["action"]) {
-    this.#advancedKeysQuery.set({
+    return this.#advancedKeysQuery.set({
       offset: this.#index,
       data: [{ ...this.advancedKey, action }],
     })

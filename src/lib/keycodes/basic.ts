@@ -266,9 +266,7 @@ export const basicKeycodeMetadata: KeycodeMetadata[] = [
   {
     name: "ISO\n#",
     keycode: Keycode.KC_NONUS_HASH,
-    webCodes: [
-      /* Backslash */
-    ],
+    webCodes: [/* Backslash */],
     category: "Basic",
   },
   {

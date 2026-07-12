@@ -17,7 +17,7 @@ import {
   CrosshairIcon,
   Gamepad2Icon,
   GaugeIcon,
-  Grid2X2Icon,
+  Grid2x2Icon,
   PencilIcon,
   SettingsIcon,
   SquareChevronUpIcon,
@@ -40,7 +40,7 @@ export type SidebarTabGroup = {
 export const sidebarTabGroups: SidebarTabGroup[] = [
   {
     group: "Profiles",
-    tabs: [{ label: "Profiles", value: "profiles", icon: Grid2X2Icon }],
+    tabs: [{ label: "Profiles", value: "profiles", icon: Grid2x2Icon }],
   },
   {
     group: "Keyboard Configuration",

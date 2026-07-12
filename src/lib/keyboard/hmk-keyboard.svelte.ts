@@ -46,6 +46,7 @@ import {
   setGamepadOptions,
 } from "$lib/libhmk/commands/gamepad-options"
 import { getKeymap, setKeymap } from "$lib/libhmk/commands/keymap"
+import { getMacros, setMacros } from "$lib/libhmk/commands/macros"
 import { getMetadata } from "$lib/libhmk/commands/metadata"
 import { getOptions, setOptions } from "$lib/libhmk/commands/options"
 import {
@@ -64,6 +65,7 @@ import type {
   GetGamepadButtonsParams,
   GetGamepadOptionsParams,
   GetKeymapParams,
+  GetMacrosParams,
   GetTickRateParams,
   Keyboard,
   ResetProfileParams,
@@ -73,6 +75,7 @@ import type {
   SetGamepadButtonsParams,
   SetGamepadOptionsParams,
   SetKeymapParams,
+  SetMacrosParams,
   SetOptionsParams,
   SetTickRateParams,
 } from "."
@@ -195,6 +198,12 @@ class HMKKeyboard implements Keyboard {
   }
   setGamepadOptions(params: SetGamepadOptionsParams) {
     return setGamepadOptions(this.commander, params)
+  }
+  getMacros(params: GetMacrosParams) {
+    return getMacros(this.version, this.commander, this.metadata, params)
+  }
+  setMacros(params: SetMacrosParams) {
+    return setMacros(this.version, this.commander, params)
   }
 }
 

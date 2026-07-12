@@ -22,6 +22,7 @@ import {
   type HMK_AdvancedKey,
 } from "$lib/libhmk/advanced-keys"
 import { HMK_GamepadButton, type HMK_GamepadOptions } from "$lib/libhmk/gamepad"
+import { defaultMacroNode, type HMK_MacroNode } from "$lib/libhmk/macro"
 import type {
   DuplicateProfileParams,
   GetActuationMapParams,
@@ -29,6 +30,7 @@ import type {
   GetGamepadButtonsParams,
   GetGamepadOptionsParams,
   GetKeymapParams,
+  GetMacrosParams,
   GetTickRateParams,
   Keyboard,
   ResetProfileParams,
@@ -37,18 +39,26 @@ import type {
   SetGamepadButtonsParams,
   SetGamepadOptionsParams,
   SetKeymapParams,
+  SetMacrosParams,
   SetOptionsParams,
   SetTickRateParams,
 } from "."
 import { demoMetadata } from "./metadata"
 
-const { adcResolution, numProfiles, numKeys, numAdvancedKeys, defaultKeymaps } =
-  demoMetadata
+const {
+  adcResolution,
+  numProfiles,
+  numKeys,
+  numAdvancedKeys,
+  numMacroNodes,
+  defaultKeymaps,
+} = demoMetadata
 
 type DemoKeyboardProfileState = {
   keymap: number[][]
   actuationMap: HMK_Actuation[]
   advancedKeys: HMK_AdvancedKey[]
+  macros: HMK_MacroNode[]
   gamepadButtons: number[]
   gamepadOptions: HMK_GamepadOptions
   tickRate: number
@@ -59,6 +69,7 @@ function defaultProfile(profile: number): DemoKeyboardProfileState {
     keymap: defaultKeymaps[profile],
     actuationMap: Array(numKeys).fill(defaultActuation),
     advancedKeys: Array(numAdvancedKeys).fill(defaultAdvancedKey),
+    macros: Array(numMacroNodes).fill(defaultMacroNode),
     gamepadButtons: Array(numKeys).fill(HMK_GamepadButton.NONE),
     gamepadOptions: {
       analogCurve: analogCurvePresets[0].curve,
@@ -174,5 +185,13 @@ export class DemoKeyboard implements Keyboard {
   }
   async setTickRate({ profile, data }: SetTickRateParams) {
     this.#state.profiles[profile].tickRate = data
+  }
+  async getMacros({ profile }: GetMacrosParams) {
+    return this.#state.profiles[profile].macros
+  }
+  async setMacros({ profile, offset, data }: SetMacrosParams) {
+    for (let i = 0; i < data.length; i++) {
+      this.#state.profiles[profile].macros[offset + i] = data[i]
+    }
   }
 }
