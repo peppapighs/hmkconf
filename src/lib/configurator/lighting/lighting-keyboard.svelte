@@ -14,6 +14,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 -->
 
 <script lang="ts">
+  import { contrastTextColor } from "$lib/color"
   import { KeyboardEditorKeyboard } from "$lib/components/keyboard-editor"
   import * as KeycodeButton from "$lib/components/keycode-button"
   import { keymapQueryContext } from "../queries/keymap-query.svelte"
@@ -24,18 +25,28 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   const { state: lighting }: { state: LightingState } = $props()
   const { current: keymap } = $derived(keymapQueryContext.get().keymap)
   const topology = $derived(lighting.topology)
+  const ready = $derived(!lighting.loading && lighting.capabilities !== null)
 
   const gesture = new RgbFramePaintGesture()
   let painterRoot = $state<HTMLElement | null>(null)
   let captureElement: HTMLElement | null = null
   let activePointerId = $state<number | null>(null)
 
-  function frameColor(ledIndex: number) {
-    return rgbToHex(getRgbFramePixel(lighting.displayFrame, ledIndex))
+  /**
+   * Keys wear the LED color, so the label follows it and lit LEDs cast a soft
+   * glow sized in `em` to track the keyboard's zoom level.
+   */
+  function ledStyle(ledIndex: number) {
+    const color = getRgbFramePixel(lighting.displayFrame, ledIndex)
+    const hex = rgbToHex(color)
+    const glow = color.some((channel) => channel > 0)
+      ? `; box-shadow: 0 0 0.5em ${hex}80`
+      : ""
+    return `background-color: ${hex}; color: ${contrastTextColor(color)}${glow}`
   }
 
   function paint(ledIndex: number) {
-    const preview = gesture.paint(ledIndex, hexToRgb(lighting.fillColor))
+    const preview = gesture.paint(ledIndex, hexToRgb(lighting.paintColor))
     if (preview) lighting.previewFrame(preview)
   }
 
@@ -79,7 +90,8 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     }
     captureElement = null
     const committed = gesture.end()
-    if (committed) void lighting.commitFrame("LED painter failed", committed)
+    if (committed)
+      void lighting.commitFrame("Could not paint the keys", committed)
   }
 
   function keyboardPaint(event: MouseEvent, ledIndex: number) {
@@ -89,7 +101,8 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     gesture.begin(lighting.displayFrame)
     paint(ledIndex)
     const committed = gesture.end()
-    if (committed) void lighting.commitFrame("LED painter failed", committed)
+    if (committed)
+      void lighting.commitFrame("Could not paint the keys", committed)
   }
 </script>
 
@@ -104,37 +117,29 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     <KeyboardEditorKeyboard>
       {#snippet keyGenerator(key)}
         {@const ledIndex = topology.keyToLed[key]}
-        {#if ledIndex === null || ledIndex === undefined}
-          {#if keymap}
-            <KeycodeButton.Root
-              aria-label={`Key ${key} has no mapped LED`}
-              class="cursor-not-allowed bg-muted text-muted-foreground"
-              disabled
-              keycode={keymap[0][key]}
-              size="sm"
-              title={`Key ${key} has no mapped LED`}
-            />
-          {:else}
-            <KeycodeButton.Skeleton class="bg-muted" />
-          {/if}
-        {:else if !keymap}
-          <KeycodeButton.Skeleton
-            class="brightness-75"
-            style={`background-color: ${frameColor(ledIndex)}`}
+        {#if !keymap || lighting.loading}
+          <KeycodeButton.Skeleton />
+        {:else if !ready || ledIndex === null || ledIndex === undefined}
+          <KeycodeButton.Root
+            class="cursor-not-allowed"
+            disabled
+            keycode={keymap[0][key]}
+            size="sm"
+            title={ready ? "This key has no LED" : undefined}
           />
         {:else}
           <KeycodeButton.Root
-            aria-label={`Paint key ${key}, LED ${ledIndex}`}
-            class="cursor-crosshair text-white [text-shadow:0_1px_2px_rgb(0_0_0/80%)] hover:brightness-110"
+            class={lighting.canPaint
+              ? "cursor-crosshair transition-[filter] hover:brightness-110"
+              : "cursor-default"}
             data-rgb-led-index={ledIndex}
-            disabled={lighting.painterDisabled}
             keycode={keymap[0][key]}
             onclick={(event) => keyboardPaint(event, ledIndex)}
             onlostpointercapture={endPaint}
             onpointerdown={(event) => beginPaint(event, ledIndex)}
             size="sm"
-            style={`background-color: ${frameColor(ledIndex)}`}
-            title={`Key ${key} → LED ${ledIndex}`}
+            style={ledStyle(ledIndex)}
+            tabindex={lighting.canPaint ? 0 : -1}
           />
         {/if}
       {/snippet}
@@ -147,15 +152,14 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   >
     {#each Array(lighting.displayFrame.length / 3).keys() as ledIndex (ledIndex)}
       <button
-        aria-label={`Paint firmware LED ${ledIndex}`}
-        class="aspect-square max-h-16 cursor-crosshair rounded-md border text-xs font-medium text-white shadow-xs outline-none [text-shadow:0_1px_2px_rgb(0_0_0/80%)] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+        aria-label={`Paint LED ${ledIndex}`}
+        class="aspect-square max-h-16 rounded-md border text-xs font-medium shadow-xs transition-[filter] outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:cursor-crosshair enabled:hover:brightness-110 disabled:pointer-events-none disabled:opacity-50"
         data-rgb-led-index={ledIndex}
         disabled={lighting.painterDisabled}
         onclick={(event) => keyboardPaint(event, ledIndex)}
         onlostpointercapture={endPaint}
         onpointerdown={(event) => beginPaint(event, ledIndex)}
-        style={`background-color: ${frameColor(ledIndex)}`}
-        title={`Firmware LED ${ledIndex}`}
+        style={ready ? ledStyle(ledIndex) : undefined}
         type="button"
       >
         {ledIndex}

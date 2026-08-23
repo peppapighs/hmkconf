@@ -66,22 +66,17 @@ describe("RGB LED topology", () => {
     expect(new Set(KBHE_75HE_KEY_TO_LED).size).toBe(82)
   })
 
-  test("maps every demo LED to exactly one rendered key shape", () => {
+  test("takes the demo keyboard's advertised key-to-LED map", () => {
     const demo = new DemoKeyboard()
-    const topology = resolveRgbLedTopology(demo.metadata, 24)
+    const ledCount = demo.metadata.rgb!.numLeds
+    const topology = resolveRgbLedTopology(demo.metadata, ledCount)
 
+    // libhmk now undoes the serpentine wiring itself and states the map, so no
+    // host has to recognise the board from its USB identity.
     expect(topology.kind).toBe("keyboard")
     if (topology.kind !== "keyboard") throw new Error("Expected key mapping")
-
-    const mapped = topology.keyToLed.filter(
-      (led): led is number => led !== null,
-    )
-    expect(mapped).toEqual([...Array(24).keys()])
-    expect(new Set(mapped).size).toBe(24)
-    expect(topology.keyToLed[13]).toBeNull()
-    expect(topology.keyToLed[14]).toBe(13)
-    expect(topology.keyToLed[15]).toBeNull()
-    expect(topology.keyToLed[25]).toBe(23)
+    expect(topology.source).toBe("metadata")
+    expect(topology.keyToLed).toEqual([...Array(ledCount).keys()])
   })
 
   test("falls back to safe firmware-index painting for unknown devices", () => {

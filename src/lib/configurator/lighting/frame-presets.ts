@@ -13,7 +13,15 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { formatHexColor, parseHexColor } from "$lib/color"
 import type { HMK_RGBColor } from "$lib/libhmk/rgb"
+
+/**
+ * Where an LED sits on the board. WS2812 chains are usually wired in a
+ * serpentine, so a preset laid out by chain index paints a snake instead of a
+ * sweep. Callers that know the physical layout pass it here.
+ */
+export type LedPlacement = { led: number; position: number }
 
 function assertLedCount(ledCount: number) {
   if (!Number.isInteger(ledCount) || ledCount < 1 || ledCount > 0xff) {
@@ -22,37 +30,58 @@ function assertLedCount(ledCount: number) {
 }
 
 export function hexToRgb(value: string): HMK_RGBColor {
-  const match = /^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(value)
-  if (!match) throw new RangeError("Color must use the #RRGGBB format.")
-  return [
-    Number.parseInt(match[1], 16),
-    Number.parseInt(match[2], 16),
-    Number.parseInt(match[3], 16),
-  ]
+  const color = parseHexColor(value)
+  if (!color) throw new RangeError("Color must use the #RRGGBB format.")
+  return color
 }
 
 export function rgbToHex(color: HMK_RGBColor) {
-  return `#${color
-    .map((value) => value.toString(16).padStart(2, "0"))
-    .join("")}`
+  return formatHexColor(color)
+}
+
+/**
+ * Paint every LED from a 0-1 ramp. Placements are rescaled so the first and
+ * last LED on the board always land on the ends of the ramp; without them the
+ * ramp falls back to the chain order.
+ */
+function createRampFrame(
+  ledCount: number,
+  placements: readonly LedPlacement[] | undefined,
+  colorAt: (progress: number) => HMK_RGBColor,
+) {
+  assertLedCount(ledCount)
+  const frame = new Uint8Array(ledCount * 3)
+
+  if (!placements || placements.length === 0) {
+    for (let index = 0; index < ledCount; index++) {
+      frame.set(colorAt(ledCount === 1 ? 0 : index / (ledCount - 1)), index * 3)
+    }
+    return frame
+  }
+
+  const positions = placements.map(({ position }) => position)
+  const min = Math.min(...positions)
+  const span = Math.max(...positions) - min
+  for (const { led, position } of placements) {
+    if (!Number.isInteger(led) || led < 0 || led >= ledCount) {
+      throw new RangeError(`LED ${led} is outside the ${ledCount}-LED frame.`)
+    }
+    frame.set(colorAt(span === 0 ? 0 : (position - min) / span), led * 3)
+  }
+  return frame
 }
 
 export function createGradientFrame(
   ledCount: number,
   start: HMK_RGBColor,
   end: HMK_RGBColor,
+  placements?: readonly LedPlacement[],
 ) {
-  assertLedCount(ledCount)
-  const frame = new Uint8Array(ledCount * 3)
-  for (let index = 0; index < ledCount; index++) {
-    const progress = ledCount === 1 ? 0 : index / (ledCount - 1)
-    for (let channel = 0; channel < 3; channel++) {
-      frame[index * 3 + channel] = Math.round(
-        start[channel] + (end[channel] - start[channel]) * progress,
-      )
-    }
-  }
-  return frame
+  return createRampFrame(ledCount, placements, (progress) => [
+    Math.round(start[0] + (end[0] - start[0]) * progress),
+    Math.round(start[1] + (end[1] - start[1]) * progress),
+    Math.round(start[2] + (end[2] - start[2]) * progress),
+  ])
 }
 
 function hueToRgb(hue: number): HMK_RGBColor {
@@ -77,11 +106,14 @@ function hueToRgb(hue: number): HMK_RGBColor {
   }
 }
 
-export function createRainbowFrame(ledCount: number) {
-  assertLedCount(ledCount)
-  const frame = new Uint8Array(ledCount * 3)
-  for (let index = 0; index < ledCount; index++) {
-    frame.set(hueToRgb(index / ledCount), index * 3)
-  }
-  return frame
+export function createRainbowFrame(
+  ledCount: number,
+  placements?: readonly LedPlacement[],
+) {
+  // The chain-ordered ramp stops one step short of a full turn so the first and
+  // last LED are not the same red; a positioned ramp spans the whole spectrum.
+  const scale = placements?.length ? 1 : (ledCount - 1) / ledCount
+  return createRampFrame(ledCount, placements, (progress) =>
+    hueToRgb(progress * scale),
+  )
 }

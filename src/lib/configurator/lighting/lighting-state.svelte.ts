@@ -19,23 +19,72 @@ import {
   HMK_RGBCapability,
   HMK_RGBEffect,
   type HMK_RGBCapabilities,
+  type HMK_RGBColor,
   type HMK_RGBMetadata,
   type HMK_RGBState,
 } from "$lib/libhmk/rgb"
+import { renderHmkRgbEffectFrame } from "$lib/libhmk/rgb-effects"
+import { toast } from "svelte-sonner"
 import {
   createGradientFrame,
   createRainbowFrame,
   hexToRgb,
   rgbToHex,
+  type LedPlacement,
 } from "./frame-presets"
-import { paintRgbFramePixel, resolveRgbLedTopology } from "./led-topology"
+import { resolveRgbLedTopology } from "./led-topology"
 
-export const RGB_EFFECT_NAMES: Record<number, string> = {
-  [HMK_RGBEffect.STATIC]: "Static",
-  [HMK_RGBEffect.BREATHING]: "Breathing",
-  [HMK_RGBEffect.RAINBOW]: "Rainbow",
-  [HMK_RGBEffect.RAINBOW_WAVE]: "Rainbow wave",
-  [HMK_RGBEffect.LIVE]: "Live (PC-controlled)",
+export type RgbEffectInfo = {
+  name: string
+  description: string
+  /** Driven by the base color that `LED_FILL` persists. */
+  colored: boolean
+  /** Phase advances every 20 ms in `rgb_task()`. */
+  animated: boolean
+}
+
+export const RGB_EFFECTS: Record<number, RgbEffectInfo> = {
+  [HMK_RGBEffect.STATIC]: {
+    name: "Static",
+    description: "One solid color across the whole board.",
+    colored: true,
+    animated: false,
+  },
+  [HMK_RGBEffect.BREATHING]: {
+    name: "Breathing",
+    description: "Fades your color in and out.",
+    colored: true,
+    animated: true,
+  },
+  [HMK_RGBEffect.RAINBOW]: {
+    name: "Rainbow",
+    description: "Cycles the whole board through the spectrum.",
+    colored: false,
+    animated: true,
+  },
+  [HMK_RGBEffect.RAINBOW_WAVE]: {
+    name: "Rainbow Wave",
+    description: "Sweeps the spectrum across the board.",
+    colored: false,
+    animated: true,
+  },
+  [HMK_RGBEffect.LIVE]: {
+    name: "Per-Key",
+    description: "Paint each key yourself from this app.",
+    colored: false,
+    animated: false,
+  },
+}
+
+export function rgbEffectInfo(effect: number): RgbEffectInfo {
+  return (
+    RGB_EFFECTS[effect] ?? {
+      name: `Effect ${effect}`,
+      description: "A private effect outside libhmk's portable set.",
+      colored: false,
+      animated: true,
+    }
+  )
 }
 
 export const RGB_PALETTE = [
@@ -44,7 +93,9 @@ export const RGB_PALETTE = [
   "#f59e0b",
   "#22c55e",
   "#06b6d4",
+  "#3b82f6",
   "#7c3aed",
+  "#ec4899",
 ] as const
 
 function errorMessage(error: unknown) {
@@ -58,16 +109,31 @@ export class LightingState {
 
   capabilities = $state<HMK_RGBCapabilities | null>(null)
   rgbState = $state<HMK_RGBState | null>(null)
+  /** Last frame read from the device. Only authoritative in live mode. */
   rgbFrame = $state<Uint8Array | null>(null)
   loading = $state(true)
   negotiated = $state(false)
   pending = $state(false)
   localError = $state<string | null>(null)
   frameError = $state<string | null>(null)
-  fillColor = $state("#7c3aed")
+
+  /**
+   * Base color of the autonomous effects. Bridge v1 has no counterpart to
+   * `LED_FILL`, so it is seeded from a uniform static frame and otherwise
+   * mirrors what this session last sent.
+   */
+  baseColor = $state("#ffffff")
+  paintColor = $state("#7c3aed")
   gradientEndColor = $state("#06b6d4")
-  ledIndex = $state(0)
-  ledColor = $state("#ffffff")
+  /** Effect phase driven by the tab so previews match `rgb_task()` timing. */
+  previewPhase = $state(0)
+  /**
+   * Where each LED sits on the rendered board, set by the tab. It stands in for
+   * the firmware's `RGB_LED_POS_X`: host presets sweep across the board rather
+   * than along the WS2812 chain, and the preview places the rainbow wave the
+   * same way the keyboard does.
+   */
+  ledPlacements = $state<readonly LedPlacement[]>([])
 
   constructor(keyboard: Keyboard) {
     if (!keyboard.metadata.rgb) {
@@ -80,81 +146,112 @@ export class LightingState {
     this.fallbackFrame = new Uint8Array(this.metadata.numLeds * 3)
   }
 
-  get currentEffectName() {
-    return this.rgbState
-      ? (RGB_EFFECT_NAMES[this.rgbState.effect] ??
-          `Effect ${this.rgbState.effect}`)
-      : "Loading…"
+  get ledCount() {
+    return this.capabilities?.ledCount ?? this.metadata.numLeds
+  }
+
+  get effect() {
+    return this.rgbState?.effect ?? HMK_RGBEffect.STATIC
+  }
+
+  get effectInfo() {
+    return rgbEffectInfo(this.effect)
+  }
+
+  get isLive() {
+    return (
+      this.capabilities !== null &&
+      this.rgbState !== null &&
+      this.rgbState.effect === this.capabilities.liveEffectId
+    )
+  }
+
+  get lightingOff() {
+    return this.rgbState?.enabled === false
   }
 
   get topology() {
-    return resolveRgbLedTopology(
-      this.keyboard.metadata,
-      this.capabilities?.ledCount ?? this.metadata.numLeds,
+    return resolveRgbLedTopology(this.keyboard.metadata, this.ledCount)
+  }
+
+  /**
+   * What the keyboard is showing. Autonomous effects are rendered locally with
+   * the firmware's own math: the bridge cannot stream an animation, and reading
+   * a frame per repaint would saturate the HID pipe.
+   */
+  get displayFrame(): Uint8Array {
+    if (this.isLive) return this.rgbFrame ?? this.fallbackFrame
+    // Reading the phase only for animated effects keeps the 82 keys off the
+    // clock while the gallery tiles keep animating.
+    const phase = this.effectInfo.animated ? this.previewPhase : 0
+    return (
+      this.effectFrame(this.effect, phase, this.ledCount) ??
+      this.rgbFrame ??
+      this.fallbackFrame
     )
   }
 
-  get displayFrame() {
-    return this.rgbFrame ?? this.fallbackFrame
+  /**
+   * Phase offset per LED for travelling effects, 0-255 across the board's
+   * width, mirroring what the generator bakes into `RGB_LED_POS_X`.
+   */
+  get waveOffsets(): Uint8Array | undefined {
+    const placements = this.ledPlacements
+    if (placements.length !== this.ledCount) return undefined
+    const positions = placements.map(({ position }) => position)
+    const low = Math.min(...positions)
+    const span = Math.max(...positions) - low
+    const offsets = new Uint8Array(this.ledCount)
+    for (const { led, position } of placements) {
+      offsets[led] =
+        span === 0 ? 0 : Math.round(((position - low) * 255) / span)
+    }
+    return offsets
   }
 
-  get canLiveWrite() {
-    const capabilities = this.capabilities
-    const state = this.rgbState
+  /** Render any advertised effect, for the keyboard and the effect gallery. */
+  effectFrame(effect: number, phase: number, ledCount: number) {
+    return renderHmkRgbEffectFrame(
+      effect,
+      phase,
+      ledCount,
+      hexToRgb(this.baseColor),
+      ledCount === this.ledCount ? this.waveOffsets : undefined,
+    )
+  }
+
+  get canFill() {
+    return this.supports(HMK_RGBCapability.FILL)
+  }
+
+  get canSelectLive() {
+    return (
+      this.supports(HMK_RGBCapability.LIVE_MODE) &&
+      this.metadata.effects.includes(HMK_RGBEffect.LIVE)
+    )
+  }
+
+  get canPaint() {
     return Boolean(
-      capabilities &&
-      state &&
+      this.isLive &&
       this.supports(HMK_RGBCapability.FRAME_CHUNKS) &&
-      this.supports(HMK_RGBCapability.LIVE_MODE) &&
-      (state.effect === capabilities.liveEffectId ||
-        this.supports(HMK_RGBCapability.RESTORE_MODE)),
-    )
-  }
-
-  get canPixelWrite() {
-    const capabilities = this.capabilities
-    const state = this.rgbState
-    return Boolean(
-      capabilities &&
-      state &&
-      this.supports(HMK_RGBCapability.PIXEL) &&
-      this.supports(HMK_RGBCapability.LIVE_MODE) &&
-      (state.effect === capabilities.liveEffectId ||
-        this.supports(HMK_RGBCapability.RESTORE_MODE)),
-    )
-  }
-
-  get canStaticWrite() {
-    const capabilities = this.capabilities
-    const state = this.rgbState
-    return Boolean(
-      capabilities &&
-      state &&
-      this.supports(HMK_RGBCapability.FILL) &&
-      this.metadata.effects.includes(HMK_RGBEffect.STATIC) &&
-      (state.effect !== capabilities.liveEffectId ||
-        this.supports(HMK_RGBCapability.RESTORE_MODE)),
+      !this.lightingOff &&
+      this.frameError === null,
     )
   }
 
   get painterDisabled() {
-    return (
-      this.pending ||
-      !this.canLiveWrite ||
-      this.rgbState?.enabled === false ||
-      this.frameError !== null
-    )
+    return this.pending || !this.canPaint
   }
 
-  get topologyLabel() {
-    switch (this.topology.source) {
-      case "metadata":
-        return "Device key-to-LED map"
-      case "kbhe-75he":
-        return "KBHE declared logical-to-physical map"
-      default:
-        return "Firmware LED indices (no key map advertised)"
+  /** Plain-language reason the keyboard above is not editable right now. */
+  get painterHint() {
+    if (!this.capabilities || !this.rgbState || this.frameError) return null
+    if (this.lightingOff) return "Turn lighting on to edit it here."
+    if (this.isLive && !this.supports(HMK_RGBCapability.FRAME_CHUNKS)) {
+      return "This keyboard does not support painting individual keys."
     }
+    return null
   }
 
   supports(capability: HMK_RGBCapability) {
@@ -171,9 +268,7 @@ export class LightingState {
     }
     this.frameError = null
     try {
-      this.rgbFrame = await this.keyboard.getRgbFrame({
-        capabilities: current,
-      })
+      this.rgbFrame = await this.keyboard.getRgbFrame({ capabilities: current })
     } catch (error) {
       this.rgbFrame = null
       this.frameError = errorMessage(error)
@@ -190,6 +285,20 @@ export class LightingState {
     }
   }
 
+  /**
+   * A static frame is the base color on every LED, which is the only way the
+   * v1 bridge exposes it: there is no GET_COLOR counterpart to `LED_FILL`.
+   */
+  #adoptBaseColorFromFrame() {
+    const frame = this.rgbFrame
+    if (!frame || this.rgbState?.effect !== HMK_RGBEffect.STATIC) return
+    const first: HMK_RGBColor = [frame[0], frame[1], frame[2]]
+    for (let index = 3; index < frame.length; index++) {
+      if (frame[index] !== first[index % 3]) return
+    }
+    this.baseColor = rgbToHex(first)
+  }
+
   async negotiate() {
     if (this.pending) return
     this.loading = true
@@ -203,17 +312,18 @@ export class LightingState {
         capabilities.protocolMinor < this.metadata.protocolMinor
       ) {
         throw new Error(
-          `RGB metadata requires protocol ${this.metadata.protocolMajor}.${this.metadata.protocolMinor}, but the device negotiated ${capabilities.protocolMajor}.${capabilities.protocolMinor}.`,
+          `This keyboard speaks RGB protocol ${capabilities.protocolMajor}.${capabilities.protocolMinor}, but its firmware metadata requires ${this.metadata.protocolMajor}.${this.metadata.protocolMinor}.`,
         )
       }
       if (capabilities.ledCount !== this.metadata.numLeds) {
         throw new Error(
-          `RGB metadata advertises ${this.metadata.numLeds} LEDs, but the device negotiated ${capabilities.ledCount}.`,
+          `This keyboard reports ${capabilities.ledCount} LEDs, but its firmware metadata declares ${this.metadata.numLeds}.`,
         )
       }
       this.capabilities = capabilities
       this.rgbState = await this.keyboard.getRgbState({ capabilities })
       await this.refreshFrame(capabilities)
+      this.#adoptBaseColorFromFrame()
     } catch (error) {
       this.capabilities = null
       this.rgbState = null
@@ -232,7 +342,6 @@ export class LightingState {
   ) {
     if (!this.capabilities || this.pending) return false
     this.pending = true
-    this.localError = null
     try {
       await action(this.capabilities)
       if (refresh) {
@@ -242,7 +351,10 @@ export class LightingState {
       }
       return true
     } catch (error) {
-      this.localError = `${label}: ${errorMessage(error)}`
+      // Once the bridge is negotiated, failures are transient device errors.
+      // Report them through the app-wide toaster instead of growing a
+      // permanent error region inside the panel.
+      toast.error(`${label}: ${errorMessage(error)}`)
       return false
     } finally {
       this.pending = false
@@ -250,100 +362,61 @@ export class LightingState {
   }
 
   setEnabled(enabled: boolean) {
-    void this.#perform("Enable control failed", (capabilities) =>
+    void this.#perform("Could not switch the lighting", (capabilities) =>
       this.keyboard.setRgbEnabled({ capabilities, data: enabled }),
     )
   }
 
   setBrightness(brightness: number) {
-    void this.#perform("Brightness update failed", (capabilities) =>
+    void this.#perform("Could not set the brightness", (capabilities) =>
       this.keyboard.setRgbBrightness({ capabilities, data: brightness }),
     )
   }
 
-  setEffect(value: string) {
-    const effect = Number(value)
+  setEffect(effect: number) {
     if (!Number.isInteger(effect) || !this.metadata.effects.includes(effect)) {
-      this.localError = `Effect ${value} is not advertised by this keyboard.`
+      toast.error("This keyboard does not advertise that effect.")
       return
     }
-    if (
-      effect === HMK_RGBEffect.LIVE &&
-      !this.supports(HMK_RGBCapability.LIVE_MODE)
-    ) {
-      this.localError =
-        "This keyboard does not advertise PC-controlled live mode."
+    if (effect === HMK_RGBEffect.LIVE && !this.canSelectLive) {
+      toast.error("This keyboard does not advertise PC-controlled live mode.")
       return
     }
-    void this.#perform("Effect update failed", async (capabilities) => {
+    void this.#perform("Could not change the effect", async (capabilities) => {
       await this.keyboard.setRgbEffect({ data: effect })
       await this.refreshFrame(capabilities)
     })
   }
 
-  applyStaticFill() {
-    const color = hexToRgb(this.fillColor)
-    void this.#perform("Static fill failed", async (capabilities) => {
-      await this.keyboard.setRgbStaticColor({ capabilities, data: color })
-      this.rgbFrame = createGradientFrame(capabilities.ledCount, color, color)
+  /**
+   * `LED_FILL` outside live mode rewrites the effect's persistent base color,
+   * which is how Static and Breathing are recolored.
+   */
+  setBaseColor(color: string) {
+    const rgb = hexToRgb(color)
+    void this.#perform("Could not save the color", async (capabilities) => {
+      await this.keyboard.fillRgb({ capabilities, data: rgb })
+      this.baseColor = color
+    })
+  }
+
+  /** Live-mode fill: one report instead of a full chunked frame upload. */
+  fillLiveFrame(color: string) {
+    if (!this.isLive) return
+    const rgb = hexToRgb(color)
+    void this.#perform("Could not fill the keys", async (capabilities) => {
+      await this.keyboard.fillRgb({ capabilities, data: rgb })
+      const frame = new Uint8Array(this.ledCount * 3)
+      for (let index = 0; index < this.ledCount; index++) {
+        frame.set(rgb, index * 3)
+      }
+      this.rgbFrame = frame
       this.frameError = null
     })
   }
 
-  clearFrame() {
-    void this.#perform("Clear failed", async (capabilities) => {
-      // A bare LED_CLEAR leaves autonomous effects running. Use the same
-      // rollback-safe STATIC transition as a normal solid fill.
-      await this.keyboard.setRgbStaticColor({
-        capabilities,
-        data: [0, 0, 0],
-      })
-      this.rgbFrame = new Uint8Array(
-        capabilities.ledCount * capabilities.bytesPerPixel,
-      )
-      this.frameError = null
-    })
-  }
-
-  restoreEffect() {
-    void this.#perform("Effect restore failed", async (capabilities) => {
-      await this.keyboard.restoreRgbEffect()
-      await this.refreshFrame(capabilities)
-    })
-  }
-
-  readPixel() {
-    void this.#perform(
-      "LED read failed",
-      async (capabilities) => {
-        this.ledColor = rgbToHex(
-          await this.keyboard.getRgbPixel({
-            capabilities,
-            index: this.ledIndex,
-          }),
-        )
-      },
-      false,
-    )
-  }
-
-  writePixel() {
-    const color = hexToRgb(this.ledColor)
-    void this.#perform("LED update failed", async (capabilities) => {
-      await this.keyboard.setRgbPixel({
-        capabilities,
-        index: this.ledIndex,
-        data: color,
-      })
-      // PIXEL is independently negotiable from FRAME_CHUNKS. Keep a local
-      // preview instead of issuing an unsupported full-frame read.
-      this.rgbFrame = paintRgbFramePixel(
-        this.displayFrame,
-        this.ledIndex,
-        color,
-      )
-      this.frameError = null
-    })
+  clearLiveFrame() {
+    this.fillLiveFrame("#000000")
   }
 
   previewFrame(frame: Uint8Array) {
@@ -366,14 +439,19 @@ export class LightingState {
     }
   }
 
+  /**
+   * Host presets sweep across the board, not along the WS2812 chain: the KBHE
+   * strip is wired in a serpentine, so a chain-ordered ramp paints a snake.
+   */
   sendGradient() {
     if (!this.capabilities) return
     void this.commitFrame(
-      "Gradient frame failed",
+      "Could not send the gradient",
       createGradientFrame(
-        this.capabilities.ledCount,
-        hexToRgb(this.fillColor),
+        this.ledCount,
+        hexToRgb(this.paintColor),
         hexToRgb(this.gradientEndColor),
+        this.ledPlacements,
       ),
     )
   }
@@ -381,8 +459,8 @@ export class LightingState {
   sendRainbow() {
     if (!this.capabilities) return
     void this.commitFrame(
-      "Rainbow frame failed",
-      createRainbowFrame(this.capabilities.ledCount),
+      "Could not send the rainbow",
+      createRainbowFrame(this.ledCount, this.ledPlacements),
     )
   }
 }
