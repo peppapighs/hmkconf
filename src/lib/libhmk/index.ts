@@ -50,6 +50,20 @@ export const hmkOptionsSchema = z.object({
   xInputEnabled: z.boolean(),
   saveBottomOutThreshold: z.boolean(),
   highPollingRateEnabled: z.boolean(),
+  /** Original 16-bit word, retained so a read/modify/write preserves flags. */
+  rawWord: uint16Schema.optional(),
+  /**
+   * Explicit gamepad mode used by firmwares advertising `gamepadApis` in
+   * metadata. It stays optional so option objects created for legacy firmware
+   * remain source-compatible.
+   */
+  gamepadMode: z.enum(["disabled", "xinput", "hid"]).optional(),
 })
 
 export type HMK_Options = z.infer<typeof hmkOptionsSchema>
+
+export const hmkGamepadApiSchema = z.enum(["xinput", "hid"])
+export type HMK_GamepadApi = z.infer<typeof hmkGamepadApiSchema>
+
+export const hmkGamepadModeSchema = z.enum(["disabled", "xinput", "hid"])
+export type HMK_GamepadMode = z.infer<typeof hmkGamepadModeSchema>

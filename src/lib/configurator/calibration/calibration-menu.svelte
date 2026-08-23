@@ -30,7 +30,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   const {
     demo,
     version,
-    metadata: { adcResolution },
+    metadata: { adcResolution, gamepadApis },
   } = keyboard
 
   const analogInfoQuery = analogInfoQueryContext.get()
@@ -42,7 +42,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 
 <div class="grid size-full grid-cols-[minmax(0,1fr)_24rem]">
   <FixedScrollArea class="flex flex-col gap-4 p-4">
-    {#if !isFeatureAvailable("saveCalibrationThreshold", version)}
+    {#if !gamepadApis.includes("hid") && !isFeatureAvailable("saveCalibrationThreshold", version)}
       <Switch
         bind:checked={
           () => options?.saveBottomOutThreshold ?? false,

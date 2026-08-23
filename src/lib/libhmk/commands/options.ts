@@ -17,32 +17,140 @@ import { DataViewReader } from "$lib/data-view-reader"
 import type { SetOptionsParams } from "$lib/keyboard"
 import type { Commander } from "$lib/keyboard/commander"
 import { HMK_Command } from "."
-import type { HMK_Options } from ".."
+import {
+  featureVersionMap,
+  type HMK_GamepadApi,
+  type HMK_GamepadMode,
+  type HMK_Options,
+} from ".."
 
-export async function getOptions(commander: Commander): Promise<HMK_Options> {
+const LEGACY_GAMEPAD_APIS: readonly HMK_GamepadApi[] = ["xinput"]
+
+function hasHidGamepadApi(gamepadApis: readonly HMK_GamepadApi[]) {
+  return gamepadApis.includes("hid")
+}
+
+function usesLegacySaveThresholdBit(
+  gamepadApis: readonly HMK_GamepadApi[],
+  firmwareVersion: number | undefined,
+) {
+  return (
+    !hasHidGamepadApi(gamepadApis) &&
+    (firmwareVersion === undefined ||
+      firmwareVersion < featureVersionMap.saveCalibrationThreshold)
+  )
+}
+
+function assertSupportedMode(
+  mode: HMK_GamepadMode,
+  gamepadApis: readonly HMK_GamepadApi[],
+) {
+  if (mode !== "disabled" && !gamepadApis.includes(mode)) {
+    throw new Error(`The keyboard does not advertise the ${mode} gamepad API.`)
+  }
+}
+
+/** Decode the global options word without reinterpreting legacy bit 1 as HID. */
+export function decodeOptionsWord(
+  optionsRaw: number,
+  gamepadApis: readonly HMK_GamepadApi[] = LEGACY_GAMEPAD_APIS,
+  firmwareVersion?: number,
+): HMK_Options {
+  const xInputEnabled = ((optionsRaw >> 0) & 1) !== 0
+  const secondBit = ((optionsRaw >> 1) & 1) !== 0
+  const highPollingRateEnabled = ((optionsRaw >> 2) & 1) !== 0
+
+  if (hasHidGamepadApi(gamepadApis)) {
+    if (xInputEnabled && secondBit) {
+      throw new Error(
+        "Invalid options: XInput and HID gamepad are both enabled.",
+      )
+    }
+
+    const gamepadMode: HMK_GamepadMode = xInputEnabled
+      ? "xinput"
+      : secondBit
+        ? "hid"
+        : "disabled"
+    assertSupportedMode(gamepadMode, gamepadApis)
+    return {
+      xInputEnabled,
+      // In HID-aware metadata, bit 1 is the mutually-exclusive HID gamepad
+      // selector rather than the legacy save-threshold option.
+      saveBottomOutThreshold: false,
+      highPollingRateEnabled,
+      gamepadMode,
+      rawWord: optionsRaw,
+    }
+  }
+
+  const gamepadMode: HMK_GamepadMode = xInputEnabled ? "xinput" : "disabled"
+  assertSupportedMode(gamepadMode, gamepadApis)
+  return {
+    xInputEnabled,
+    saveBottomOutThreshold: usesLegacySaveThresholdBit(
+      gamepadApis,
+      firmwareVersion,
+    )
+      ? secondBit
+      : false,
+    highPollingRateEnabled,
+    gamepadMode,
+    rawWord: optionsRaw,
+  }
+}
+
+/** Encode exactly one of disabled/XInput/HID while preserving legacy bit 1. */
+export function encodeOptionsWord(
+  options: HMK_Options,
+  gamepadApis: readonly HMK_GamepadApi[] = LEGACY_GAMEPAD_APIS,
+  firmwareVersion?: number,
+) {
+  const gamepadMode =
+    options.gamepadMode ?? (options.xInputEnabled ? "xinput" : "disabled")
+  assertSupportedMode(gamepadMode, gamepadApis)
+
+  const xInputBit = gamepadMode === "xinput" ? 1 : 0
+  const secondBit = hasHidGamepadApi(gamepadApis)
+    ? gamepadMode === "hid"
+      ? 1
+      : 0
+    : usesLegacySaveThresholdBit(gamepadApis, firmwareVersion) &&
+        options.saveBottomOutThreshold
+      ? 1
+      : 0
+
+  const knownBits =
+    (xInputBit << 0) |
+    (secondBit << 1) |
+    ((options.highPollingRateEnabled ? 1 : 0) << 2)
+
+  // All UI setters spread the last GET_OPTIONS result. Keep every bit outside
+  // the v1 known mask so future flags survive an unrelated setting change.
+  return ((options.rawWord ?? 0) & ~0b111) | knownBits
+}
+
+export async function getOptions(
+  commander: Commander,
+  gamepadApis: readonly HMK_GamepadApi[] = LEGACY_GAMEPAD_APIS,
+  firmwareVersion?: number,
+): Promise<HMK_Options> {
   const optionsRaw = new DataViewReader(
     await commander.sendCommand({ command: HMK_Command.GET_OPTIONS }),
   ).uint16()
 
-  return {
-    xInputEnabled: ((optionsRaw >> 0) & 1) !== 0,
-    saveBottomOutThreshold: ((optionsRaw >> 1) & 1) !== 0,
-    highPollingRateEnabled: ((optionsRaw >> 2) & 1) !== 0,
-  }
+  return decodeOptionsWord(optionsRaw, gamepadApis, firmwareVersion)
 }
 
 export async function setOptions(
   commander: Commander,
-  {
-    data: { xInputEnabled, saveBottomOutThreshold, highPollingRateEnabled },
-  }: SetOptionsParams,
+  { data }: SetOptionsParams,
+  gamepadApis: readonly HMK_GamepadApi[] = LEGACY_GAMEPAD_APIS,
+  firmwareVersion?: number,
 ) {
+  const encoded = encodeOptionsWord(data, gamepadApis, firmwareVersion)
   await commander.sendCommand({
     command: HMK_Command.SET_OPTIONS,
-    payload: [
-      ((xInputEnabled ? 1 : 0) << 0) |
-        ((saveBottomOutThreshold ? 1 : 0) << 1) |
-        ((highPollingRateEnabled ? 1 : 0) << 2),
-    ],
+    payload: [encoded & 0xff, encoded >> 8],
   })
 }

@@ -55,17 +55,35 @@ import {
   resetProfile,
 } from "$lib/libhmk/commands/profile"
 import { reboot } from "$lib/libhmk/commands/reboot"
+import {
+  clearRgb,
+  fillRgb,
+  getRgbCapabilities,
+  getRgbFrame,
+  getRgbPixel,
+  getRgbState,
+  restoreRgbEffect,
+  setRgbBrightness,
+  setRgbEffect,
+  setRgbEnabled,
+  setRgbPixel,
+  setRgbStaticColor,
+  writeRgbFrame,
+} from "$lib/libhmk/commands/rgb"
 import { getSerial } from "$lib/libhmk/commands/serial"
 import { getTickRate, setTickRate } from "$lib/libhmk/commands/tick-rate"
 import { displayVersion, isWebHIDSSupported } from "$lib/utils"
 import type {
   DuplicateProfileParams,
+  FillRgbParams,
   GetActuationMapParams,
   GetAdvancedKeysParams,
   GetGamepadButtonsParams,
   GetGamepadOptionsParams,
   GetKeymapParams,
   GetMacrosParams,
+  GetRgbPixelParams,
+  GetRgbStateParams,
   GetTickRateParams,
   Keyboard,
   ResetProfileParams,
@@ -77,7 +95,12 @@ import type {
   SetKeymapParams,
   SetMacrosParams,
   SetOptionsParams,
+  SetRgbBrightnessParams,
+  SetRgbEffectParams,
+  SetRgbEnabledParams,
+  SetRgbPixelParams,
   SetTickRateParams,
+  WriteRgbFrameParams,
 } from "."
 import { Commander } from "./commander"
 import type { KeyboardMetadata } from "./metadata"
@@ -97,6 +120,8 @@ class HMKKeyboard implements Keyboard {
   metadata: KeyboardMetadata
   commander: Commander
   onDisconnect?: (keyboard: Keyboard) => void
+  #disconnectHandler?: (event: HIDConnectionEvent) => void
+  #disconnectPromise?: Promise<void>
 
   constructor({
     id,
@@ -112,15 +137,45 @@ class HMKKeyboard implements Keyboard {
     this.onDisconnect = onDisconnect
   }
 
-  async disconnect() {
-    await this.commander.clear()
-    await this.commander.hidDevice.close()
-    this.onDisconnect?.(this)
+  listenForDisconnect() {
+    this.#disconnectHandler = (event) => {
+      if (event.device !== this.commander.hidDevice) return
+      void this.disconnect().catch((err) => console.error(err))
+    }
+    navigator.hid.addEventListener("disconnect", this.#disconnectHandler)
   }
-  async forget() {
-    await this.commander.clear()
-    await this.commander.hidDevice.forget()
-    this.onDisconnect?.(this)
+
+  #removeDisconnectListener() {
+    if (!this.#disconnectHandler) return
+    navigator.hid.removeEventListener("disconnect", this.#disconnectHandler)
+    this.#disconnectHandler = undefined
+  }
+
+  #detach(forget: boolean) {
+    if (this.#disconnectPromise) return this.#disconnectPromise
+    this.#disconnectPromise = (async () => {
+      this.#removeDisconnectListener()
+      try {
+        await this.commander.clear()
+        if (forget) {
+          await this.commander.hidDevice.forget()
+        } else if (this.commander.hidDevice.opened) {
+          await this.commander.hidDevice.close()
+        }
+      } finally {
+        const callback = this.onDisconnect
+        this.onDisconnect = undefined
+        callback?.(this)
+      }
+    })()
+    return this.#disconnectPromise
+  }
+
+  disconnect() {
+    return this.#detach(false)
+  }
+  forget() {
+    return this.#detach(true)
   }
 
   reboot() {
@@ -148,10 +203,15 @@ class HMKKeyboard implements Keyboard {
     return getProfile(this.commander)
   }
   getOptions() {
-    return getOptions(this.commander)
+    return getOptions(this.commander, this.metadata.gamepadApis, this.version)
   }
   setOptions(params: SetOptionsParams) {
-    return setOptions(this.commander, params)
+    return setOptions(
+      this.commander,
+      params,
+      this.metadata.gamepadApis,
+      this.version,
+    )
   }
   resetProfile(params: ResetProfileParams) {
     return resetProfile(this.commander, params)
@@ -205,6 +265,46 @@ class HMKKeyboard implements Keyboard {
   setMacros(params: SetMacrosParams) {
     return setMacros(this.version, this.commander, params)
   }
+
+  getRgbCapabilities() {
+    return getRgbCapabilities(this.commander)
+  }
+  getRgbState({ capabilities }: GetRgbStateParams) {
+    return getRgbState(this.commander, capabilities)
+  }
+  setRgbEnabled({ capabilities, data }: SetRgbEnabledParams) {
+    return setRgbEnabled(this.commander, capabilities, data)
+  }
+  setRgbBrightness({ capabilities, data }: SetRgbBrightnessParams) {
+    return setRgbBrightness(this.commander, capabilities, data)
+  }
+  setRgbEffect({ data }: SetRgbEffectParams) {
+    return setRgbEffect(this.commander, data)
+  }
+  restoreRgbEffect() {
+    return restoreRgbEffect(this.commander)
+  }
+  getRgbPixel({ capabilities, index }: GetRgbPixelParams) {
+    return getRgbPixel(this.commander, capabilities, index)
+  }
+  setRgbPixel({ capabilities, index, data }: SetRgbPixelParams) {
+    return setRgbPixel(this.commander, capabilities, index, data)
+  }
+  fillRgb({ capabilities, data }: FillRgbParams) {
+    return fillRgb(this.commander, capabilities, data)
+  }
+  clearRgb({ capabilities }: GetRgbStateParams) {
+    return clearRgb(this.commander, capabilities)
+  }
+  setRgbStaticColor({ capabilities, data }: FillRgbParams) {
+    return setRgbStaticColor(this.commander, capabilities, data)
+  }
+  getRgbFrame({ capabilities }: GetRgbStateParams) {
+    return getRgbFrame(this.commander, capabilities)
+  }
+  writeRgbFrame({ capabilities, data }: WriteRgbFrameParams) {
+    return writeRgbFrame(this.commander, capabilities, data)
+  }
 }
 
 export async function connect(
@@ -214,10 +314,12 @@ export async function connect(
     throw new Error("WebHID is not supported in this browser.")
   }
 
-  const devices = (await navigator.hid.getDevices()).filter(
-    (device) =>
-      device.collections[0].usagePage === HMK_DEVICE_USAGE_PAGE &&
-      device.collections[0].usage === HMK_DEVICE_USAGE_ID,
+  const devices = (await navigator.hid.getDevices()).filter((device) =>
+    device.collections.some(
+      (collection) =>
+        collection.usagePage === HMK_DEVICE_USAGE_PAGE &&
+        collection.usage === HMK_DEVICE_USAGE_ID,
+    ),
   )
 
   if (devices.length === 0) {
@@ -255,10 +357,7 @@ export async function connect(
       onDisconnect,
     })
 
-    navigator.hid.addEventListener("disconnect", async function handler() {
-      navigator.hid.removeEventListener("disconnect", handler)
-      await keyboard.disconnect()
-    })
+    keyboard.listenForDisconnect()
 
     return keyboard
   } catch (err) {

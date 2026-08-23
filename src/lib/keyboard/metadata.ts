@@ -20,7 +20,9 @@ import {
   HMK_MAX_NUM_LAYERS,
   HMK_MAX_NUM_MACRO_NODES,
   HMK_MAX_NUM_PROFILES,
+  hmkGamepadApiSchema,
 } from "$lib/libhmk"
+import { hmkRgbMetadataSchema } from "$lib/libhmk/rgb"
 import z from "zod"
 import { Keycode, MO, PF } from "../libhmk/keycodes"
 
@@ -112,6 +114,30 @@ export const keyboardMetadataSchema = z
       .default(4),
     numMacroNodes: z.int().min(1).max(HMK_MAX_NUM_MACRO_NODES).default(128),
 
+    // Older metadata did not expose the available gamepad APIs. libhmk has
+    // historically supported XInput, so that is the compatibility default.
+    // Unknown strings are ignored so newer firmware can add APIs without
+    // making the entire keyboard metadata unreadable by this release.
+    gamepadApis: z
+      .array(z.string())
+      .default(["xinput"])
+      .transform((val, ctx) => {
+        const supported = val.flatMap((api) => {
+          const parsed = hmkGamepadApiSchema.safeParse(api)
+          return parsed.success ? [parsed.data] : []
+        })
+        if (new Set(supported).size !== supported.length) {
+          ctx.addIssue({
+            code: "custom",
+            message: "Gamepad APIs must be unique",
+            input: supported,
+          })
+        }
+        return supported
+      }),
+    // `null` and omission both mean that no RGB command surface is present.
+    rgb: hmkRgbMetadataSchema.nullable().optional().default(null),
+
     layout: keyboardLayoutSchema,
     defaultKeymap: z.array(z.array(keycodeSchema)).optional(),
     defaultKeymaps: z.array(z.array(z.array(keycodeSchema))).optional(),
@@ -163,6 +189,28 @@ export const keyboardMetadataSchema = z
         code: "custom",
         message: `Expected defaultKeymaps layers to have ${val.numKeys} keys`,
       })
+    }
+
+    const keyToLed = val.rgb?.keyToLed
+    if (keyToLed !== undefined) {
+      if (keyToLed.length !== val.numKeys) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Expected RGB keyToLed to have ${val.numKeys} entries`,
+          path: ["rgb", "keyToLed"],
+          input: keyToLed,
+        })
+      }
+      for (const [key, led] of keyToLed.entries()) {
+        if (led !== null && led >= val.rgb!.numLeds) {
+          ctx.addIssue({
+            code: "custom",
+            message: `RGB key ${key} maps to LED ${led}, outside the advertised ${val.rgb!.numLeds}-LED range`,
+            path: ["rgb", "keyToLed", key],
+            input: led,
+          })
+        }
+      }
     }
 
     return { ...val, defaultKeymaps }

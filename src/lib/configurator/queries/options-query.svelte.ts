@@ -32,7 +32,7 @@ export class OptionsQuery {
 
   async set(params: SetOptionsParams) {
     const { data } = params
-    await optimisticUpdate({
+    return optimisticUpdate({
       resource: this.options,
       optimisticFn: () => data,
       updateFn: () => this.#keyboard.setOptions(params),
