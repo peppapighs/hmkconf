@@ -42,13 +42,15 @@ export async function optimisticUpdate<T>(options: {
   const { resource, optimisticFn, updateFn } = options
 
   const current = resource.current
-  if (current) resource.mutate(optimisticFn(current))
+  if (current !== undefined) resource.mutate(optimisticFn(current))
 
   try {
     await updateFn()
+    return true
   } catch (err) {
     if (current !== undefined) resource.mutate(current)
     console.error(err)
+    return false
   } finally {
     resource.refetch()
   }

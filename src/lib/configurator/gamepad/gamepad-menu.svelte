@@ -16,6 +16,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 <script lang="ts">
   import { Badge } from "$lib/components/ui/badge"
   import * as Tabs from "$lib/components/ui/tabs"
+  import type { HMK_GamepadMode } from "$lib/libhmk"
   import { gamepadStateContext } from "../context.svelte"
   import { optionsQueryContext } from "../queries/options-query.svelte"
   import GamepadAnalogTab from "./gamepad-analog-tab.svelte"
@@ -25,6 +26,9 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   const { tab } = $derived(gamepadState)
 
   const { current: options } = $derived(optionsQueryContext.get().options)
+  const mode = $derived<HMK_GamepadMode>(
+    options?.gamepadMode ?? (options?.xInputEnabled ? "xinput" : "disabled"),
+  )
 </script>
 
 <Tabs.Root
@@ -36,8 +40,12 @@ this program. If not, see <https://www.gnu.org/licenses/>.
       <Tabs.Trigger value="setup">Setup</Tabs.Trigger>
       <Tabs.Trigger value="analog">Analog</Tabs.Trigger>
     </Tabs.List>
-    {#if options && !options.xInputEnabled}
-      <Badge variant="destructive">XInput interface is disabled</Badge>
+    {#if options && mode === "disabled"}
+      <Badge variant="destructive">Gamepad interface is disabled</Badge>
+    {:else if options}
+      <Badge variant="secondary">
+        {mode === "xinput" ? "XInput" : "USB HID gamepad"}
+      </Badge>
     {/if}
   </div>
   <Tabs.Content value="setup">

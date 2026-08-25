@@ -19,6 +19,11 @@ import type { HMK_AdvancedKey } from "$lib/libhmk/advanced-keys"
 import type { HMK_AnalogInfo } from "$lib/libhmk/commands"
 import type { HMK_GamepadOptions } from "$lib/libhmk/gamepad"
 import type { HMK_MacroNode } from "$lib/libhmk/macro"
+import type {
+  HMK_RGBCapabilities,
+  HMK_RGBColor,
+  HMK_RGBState,
+} from "$lib/libhmk/rgb"
 import { Context } from "runed"
 import type { KeyboardMetadata } from "./metadata"
 
@@ -54,6 +59,17 @@ export type GetGamepadButtonsParams = GetProfileParams
 export type SetGamepadButtonsParams = SetProfileArrayParams<number>
 export type GetGamepadOptionsParams = GetProfileParams
 export type SetGamepadOptionsParams = SetProfileParams<HMK_GamepadOptions>
+
+export type GetRgbStateParams = { capabilities: HMK_RGBCapabilities }
+export type SetRgbEnabledParams = GetRgbStateParams & SetParams<boolean>
+export type SetRgbBrightnessParams = GetRgbStateParams & SetParams<number>
+export type SetRgbEffectParams = SetParams<number>
+export type GetRgbPixelParams = GetRgbStateParams & { index: number }
+export type SetRgbPixelParams = GetRgbPixelParams & SetParams<HMK_RGBColor>
+export type FillRgbParams = GetRgbStateParams & SetParams<HMK_RGBColor>
+export type WriteRgbFrameParams = GetRgbStateParams & {
+  data: ArrayLike<number>
+}
 
 export type KeyboardState = {
   id: string
@@ -96,6 +112,20 @@ export type KeyboardAction = {
   setGamepadOptions(params: SetGamepadOptionsParams): Promise<void>
   getMacros(params: GetMacrosParams): Promise<HMK_MacroNode[]>
   setMacros(params: SetMacrosParams): Promise<void>
+
+  getRgbCapabilities(): Promise<HMK_RGBCapabilities>
+  getRgbState(params: GetRgbStateParams): Promise<HMK_RGBState>
+  setRgbEnabled(params: SetRgbEnabledParams): Promise<void>
+  setRgbBrightness(params: SetRgbBrightnessParams): Promise<void>
+  setRgbEffect(params: SetRgbEffectParams): Promise<void>
+  restoreRgbEffect(): Promise<number>
+  getRgbPixel(params: GetRgbPixelParams): Promise<HMK_RGBColor>
+  setRgbPixel(params: SetRgbPixelParams): Promise<void>
+  fillRgb(params: FillRgbParams): Promise<void>
+  clearRgb(params: GetRgbStateParams): Promise<void>
+  setRgbStaticColor(params: FillRgbParams): Promise<void>
+  getRgbFrame(params: GetRgbStateParams): Promise<Uint8Array>
+  writeRgbFrame(params: WriteRgbFrameParams): Promise<void>
 }
 
 export type Keyboard = KeyboardState & KeyboardAction

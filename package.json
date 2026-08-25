@@ -10,6 +10,7 @@
     "prepare": "svelte-kit sync || echo ''",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "test": "bun test",
     "format": "prettier --write .",
     "lint": "prettier --check . && eslint ."
   },
@@ -24,6 +25,7 @@
     "@sveltejs/kit": "^2.70.1",
     "@sveltejs/vite-plugin-svelte": "^7.2.0",
     "@tailwindcss/vite": "^4.3.3",
+    "@types/bun": "^1.4.0",
     "@types/w3c-web-hid": "^1.0.7",
     "bits-ui": "^2.18.1",
     "clsx": "^2.1.1",

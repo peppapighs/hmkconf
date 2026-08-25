@@ -15,11 +15,13 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 
 <script lang="ts">
   import * as Sidebar from "$lib/components/ui/sidebar"
+  import { keyboardContext } from "$lib/keyboard"
   import { Tabs } from "bits-ui"
   import { globalStateContext } from "../context.svelte"
   import { sidebarTabGroups } from "../lib/layout"
 
   const { tab } = $derived(globalStateContext.get())
+  const { rgb } = keyboardContext.get().metadata
 </script>
 
 {#each sidebarTabGroups as { group, tabs } (group)}
@@ -29,20 +31,22 @@ this program. If not, see <https://www.gnu.org/licenses/>.
     </Sidebar.GroupLabel>
     <Sidebar.Menu>
       {#each tabs as { label, value, icon: Icon } (value)}
-        <Sidebar.MenuItem>
-          <Tabs.Trigger {value}>
-            {#snippet child({ props })}
-              <Sidebar.MenuButton
-                isActive={tab === value}
-                tooltipContent={label}
-                {...props}
-              >
-                <Icon />
-                <span>{label}</span>
-              </Sidebar.MenuButton>
-            {/snippet}
-          </Tabs.Trigger>
-        </Sidebar.MenuItem>
+        {#if value !== "lighting" || rgb}
+          <Sidebar.MenuItem>
+            <Tabs.Trigger {value}>
+              {#snippet child({ props })}
+                <Sidebar.MenuButton
+                  isActive={tab === value}
+                  tooltipContent={label}
+                  {...props}
+                >
+                  <Icon />
+                  <span>{label}</span>
+                </Sidebar.MenuButton>
+              {/snippet}
+            </Tabs.Trigger>
+          </Sidebar.MenuItem>
+        {/if}
       {/each}
     </Sidebar.Menu>
   </Sidebar.Group>

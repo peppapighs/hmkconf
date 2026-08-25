@@ -15,24 +15,62 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 
 <script lang="ts">
   import * as KeyboardEditor from "$lib/components/keyboard-editor"
-  import Switch from "$lib/components/switch.svelte"
+  import { Badge } from "$lib/components/ui/badge"
+  import * as Select from "$lib/components/ui/select"
+  import { keyboardContext } from "$lib/keyboard"
+  import type { HMK_GamepadMode } from "$lib/libhmk"
   import { optionsQueryContext } from "../queries/options-query.svelte"
 
   const optionsQuery = optionsQueryContext.get()
   const { current: options } = $derived(optionsQuery.options)
+  const { gamepadApis } = keyboardContext.get().metadata
+
+  const modes: { value: HMK_GamepadMode; label: string }[] = [
+    { value: "disabled", label: "Disabled" },
+    ...gamepadApis.map((api) => ({
+      value: api,
+      label: api === "xinput" ? "XInput" : "USB HID gamepad",
+    })),
+  ]
+  const mode = $derived<HMK_GamepadMode>(
+    options?.gamepadMode ?? (options?.xInputEnabled ? "xinput" : "disabled"),
+  )
+  let reconnectRequired = $state(false)
+
+  async function setMode(value: string) {
+    if (!options || value === mode) return
+    const gamepadMode = value as HMK_GamepadMode
+    reconnectRequired = await optionsQuery.set({
+      data: {
+        ...options,
+        gamepadMode,
+        // Keep the legacy field coherent for older consumers of HMK_Options.
+        xInputEnabled: gamepadMode === "xinput",
+      },
+    })
+  }
 </script>
 
 <KeyboardEditor.Menubar>
-  <Switch
-    bind:checked={
-      () => options?.xInputEnabled ?? false,
-      (v) =>
-        options && optionsQuery.set({ data: { ...options, xInputEnabled: v } })
-    }
-    disabled={!options}
-    id="xinput-enabled"
-    title="Enable XInput Interface"
-    tooltip="Allow your keyboard to be recognized as an Xbox controller for gamepad input. Restart the keyboard to apply changes. This setting applies globally across all profiles."
-  />
+  <div class="flex items-center gap-3">
+    <span class="text-sm font-medium">Gamepad interface</span>
+    <Select.Root
+      bind:value={() => mode, setMode}
+      disabled={!options}
+      type="single"
+    >
+      <Select.Trigger class="w-44" size="sm">
+        {modes.find(({ value }) => value === mode)?.label ?? "Unavailable"}
+      </Select.Trigger>
+      <Select.Content class="w-[var(--bits-select-anchor-width)]">
+        {#each modes as { value, label } (value)}
+          <Select.Item {value}>{label}</Select.Item>
+        {/each}
+      </Select.Content>
+    </Select.Root>
+    {#if reconnectRequired}
+      <Badge variant="secondary">Restart and reconnect to apply</Badge>
+    {/if}
+  </div>
   <KeyboardEditor.LayoutDialog />
 </KeyboardEditor.Menubar>

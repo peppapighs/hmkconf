@@ -62,29 +62,58 @@ export class Commander {
     return this.#taskQueue.enqueue(
       (abortController) =>
         new Promise<DataView>((resolve, reject) => {
-          this.hidDevice
-            .sendReport(0, new Uint8Array(commandBuffer))
-            .catch((err) => reject(err))
+          const timers: {
+            interval?: ReturnType<typeof setInterval>
+            timeout?: ReturnType<typeof setTimeout>
+          } = {}
+          let settled = false
 
-          const interval = setInterval(() => {
+          const cleanup = () => {
+            if (timers.interval !== undefined) clearInterval(timers.interval)
+            if (timers.timeout !== undefined) clearTimeout(timers.timeout)
+            abortController.signal.removeEventListener("abort", onAbort)
+          }
+          const resolveOnce = (response: DataView) => {
+            if (settled) return
+            settled = true
+            cleanup()
+            resolve(response)
+          }
+          const rejectOnce = (err: unknown) => {
+            if (settled) return
+            settled = true
+            cleanup()
+            reject(err)
+          }
+          const onAbort = () => rejectOnce(new Error("Command was cancelled."))
+
+          if (abortController.signal.aborted) {
+            onAbort()
+            return
+          }
+          abortController.signal.addEventListener("abort", onAbort, {
+            once: true,
+          })
+
+          timers.interval = setInterval(() => {
             while (this.#responseQueue.length > 0) {
               const response = this.#responseQueue.shift()
               if (response !== undefined && response?.getUint8(0) === command) {
-                clearInterval(interval)
-                resolve(new DataView(response.buffer.slice(1)))
+                const start = response.byteOffset + 1
+                const end = response.byteOffset + response.byteLength
+                resolveOnce(new DataView(response.buffer.slice(start, end)))
+                return
               }
             }
           }, 10)
 
-          abortController.signal.addEventListener("abort", () => {
-            clearInterval(interval)
-            reject(new Error("Command was cancelled."))
-          })
-
-          setTimeout(() => {
-            clearInterval(interval)
-            reject(new Error("Command timed out."))
+          timers.timeout = setTimeout(() => {
+            rejectOnce(new Error("Command timed out."))
           }, timeout)
+
+          this.hidDevice
+            .sendReport(0, new Uint8Array(commandBuffer))
+            .catch(rejectOnce)
         }),
     )
   }
