@@ -1,5 +1,6 @@
 import { createGradientFrame } from "$lib/configurator/lighting/frame-presets"
 import { resolveRgbLedTopology } from "$lib/configurator/lighting/led-topology"
+import { Keycode } from "$lib/libhmk/keycodes"
 import { HMK_RGBEffect } from "$lib/libhmk/rgb"
 import { describe, expect, test } from "bun:test"
 import { DemoKeyboard } from "./demo-keyboard.svelte"
@@ -23,6 +24,16 @@ describe("KBHE 75HE metadata", () => {
       HMK_RGBEffect.RAINBOW,
       HMK_RGBEffect.RAINBOW_WAVE,
       HMK_RGBEffect.LIVE,
+    ])
+  })
+
+  test("matches the canonical navigation column on the default layer", () => {
+    const defaultLayer = kbhe75heMetadata.defaultKeymaps[0][0]
+
+    expect([28, 43, 57].map((index) => defaultLayer[index])).toEqual([
+      Keycode.KC_HOME,
+      Keycode.KC_PGUP,
+      Keycode.KC_PGDN,
     ])
   })
 

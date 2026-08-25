@@ -61,12 +61,6 @@ export function decodeOptionsWord(
   const highPollingRateEnabled = ((optionsRaw >> 2) & 1) !== 0
 
   if (hasHidGamepadApi(gamepadApis)) {
-    if (xInputEnabled && secondBit) {
-      throw new Error(
-        "Invalid options: XInput and HID gamepad are both enabled.",
-      )
-    }
-
     const gamepadMode: HMK_GamepadMode = xInputEnabled
       ? "xinput"
       : secondBit
@@ -75,8 +69,8 @@ export function decodeOptionsWord(
     assertSupportedMode(gamepadMode, gamepadApis)
     return {
       xInputEnabled,
-      // In HID-aware metadata, bit 1 is the mutually-exclusive HID gamepad
-      // selector rather than the legacy save-threshold option.
+      // In HID-aware metadata, bit 1 selects HID only when XInput is disabled,
+      // matching the firmware's XInput-first priority.
       saveBottomOutThreshold: false,
       highPollingRateEnabled,
       gamepadMode,

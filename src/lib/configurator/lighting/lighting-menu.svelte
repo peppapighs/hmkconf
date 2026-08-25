@@ -67,13 +67,23 @@ this program. If not, see <https://www.gnu.org/licenses/>.
   </div>
 {/snippet}
 
-{#snippet palette(current: string, pick: (color: string) => void)}
-  <div aria-label="Color presets" class="flex flex-wrap gap-1.5" role="group">
+{#snippet palette(
+  current: string,
+  pick: (color: string) => void,
+  disabled = false,
+)}
+  <div
+    aria-disabled={disabled}
+    aria-label="Color presets"
+    class="flex flex-wrap gap-1.5"
+    role="group"
+  >
     {#each RGB_PALETTE as swatch (swatch)}
       <button
         aria-label={`Use ${swatch}`}
         aria-pressed={current.toLowerCase() === swatch}
         class="size-9 rounded-md border shadow-xs transition-transform outline-none hover:scale-105 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-pressed:ring-2 aria-pressed:ring-ring aria-pressed:ring-offset-2 aria-pressed:ring-offset-background"
+        {disabled}
         onclick={() => pick(swatch)}
         style={`background-color: ${swatch}`}
         type="button"
@@ -123,7 +133,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
             {@const live = effect === state.capabilities.liveEffectId}
             <Button
               aria-pressed={state.effect === effect}
-              class="h-auto w-32 flex-col items-stretch gap-2 p-2 aria-pressed:border-ring aria-pressed:ring-2 aria-pressed:ring-ring"
+              class="h-auto w-28 flex-col items-stretch gap-2 p-2 aria-pressed:border-ring aria-pressed:ring-2 aria-pressed:ring-ring"
               disabled={state.pending || (live && !state.canSelectLive)}
               onclick={() => state.setEffect(effect)}
               variant="outline"
@@ -144,8 +154,10 @@ this program. If not, see <https://www.gnu.org/licenses/>.
               : "This keyboard does not accept a base color.",
           )}
           <div class="flex flex-wrap items-center gap-2">
-            {@render palette(state.baseColor, (color) =>
-              state.setBaseColor(color),
+            {@render palette(
+              state.baseColor,
+              (color) => state.setBaseColor(color),
+              state.pending || !state.canFill,
             )}
             <Separator class="h-9" orientation="vertical" />
             <ColorPicker

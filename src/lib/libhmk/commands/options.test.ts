@@ -65,10 +65,21 @@ describe("global options compatibility codec", () => {
     ).toBe(0b100)
   })
 
-  test("rejects invalid or unsupported gamepad combinations", () => {
-    expect(() => decodeOptionsWord(0b011, ["xinput", "hid"])).toThrow(
-      "both enabled",
-    )
+  test("uses firmware XInput priority and normalizes conflicting bits", () => {
+    const apis = ["xinput", "hid"] as const
+    const decoded = decodeOptionsWord(0b011, apis)
+
+    expect(decoded).toEqual({
+      xInputEnabled: true,
+      saveBottomOutThreshold: false,
+      highPollingRateEnabled: false,
+      gamepadMode: "xinput",
+      rawWord: 0b011,
+    })
+    expect(encodeOptionsWord(decoded, apis)).toBe(0b001)
+  })
+
+  test("rejects unsupported gamepad modes when encoding", () => {
     expect(() =>
       encodeOptionsWord({ ...legacyOptions, gamepadMode: "hid" }),
     ).toThrow("does not advertise")
